@@ -12,9 +12,11 @@ import {
   TableRow,
   Text,
 } from "@fluentui/react-components";
-import { useEffect, useImperativeHandle, useMemo, useState, type ReactNode, type Ref } from "react";
+import { useCallback, useEffect, useImperativeHandle, useMemo, useState, type ReactNode, type Ref } from "react";
 import { listWebResourcesForSolution, type WebResource } from "../../api/dataverse";
+import { listLinks, type LocalFile, type ResourceLink } from "../../api/local";
 import { ColumnHeaderMenu, type SortDirection } from "./ColumnHeaderMenu";
+import { LocalFileLink } from "./LocalFileLink";
 
 const TYPE_LABELS: Record<number, string> = {
   1: "HTML",
@@ -76,15 +78,39 @@ export interface WebResourceListHandle {
 interface Props {
   orgApiUrl: string;
   solutionId: string;
+  environmentId: string;
+  solutionUniqueName: string;
+  localFiles: LocalFile[];
+  modifiedPaths: Set<string>;
+  onFilePublished: (localPath: string) => void;
   onActiveFilterOrSortChange?: (active: boolean) => void;
   ref?: Ref<WebResourceListHandle>;
 }
 
-export function WebResourceList({ orgApiUrl, solutionId, onActiveFilterOrSortChange, ref }: Props) {
+export function WebResourceList({
+  orgApiUrl,
+  solutionId,
+  environmentId,
+  solutionUniqueName,
+  localFiles,
+  modifiedPaths,
+  onFilePublished,
+  onActiveFilterOrSortChange,
+  ref,
+}: Props) {
   const [resources, setResources] = useState<WebResource[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [sort, setSort] = useState<{ column: SortColumn; direction: "asc" | "desc" } | null>(null);
+  const [links, setLinks] = useState<ResourceLink[]>([]);
+
+  const refreshLinks = useCallback(() => {
+    listLinks().then(setLinks);
+  }, []);
+
+  useEffect(() => {
+    refreshLinks();
+  }, [refreshLinks, solutionId]);
 
   const hasActiveFilterOrSort =
     sort !== null ||
@@ -247,20 +273,38 @@ export function WebResourceList({ orgApiUrl, solutionId, onActiveFilterOrSortCha
               </ColumnHeaderMenu>
             </HeaderContent>
           </TableHeaderCell>
+          <TableHeaderCell>Local file</TableHeaderCell>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {displayedResources.map((r) => (
-          <TableRow key={r.webresourceid}>
-            <TableCell>{r.name}</TableCell>
-            <TableCell>{r.displayname}</TableCell>
-            <TableCell>{TYPE_LABELS[r.webresourcetype] ?? r.webresourcetype}</TableCell>
-            <TableCell>{r.ismanaged ? "Yes" : "No"}</TableCell>
-          </TableRow>
-        ))}
+        {displayedResources.map((r) => {
+          const link = links.find((l) => l.webresourceId === r.webresourceid);
+          return (
+            <TableRow key={r.webresourceid}>
+              <TableCell>{r.name}</TableCell>
+              <TableCell>{r.displayname}</TableCell>
+              <TableCell>{TYPE_LABELS[r.webresourcetype] ?? r.webresourcetype}</TableCell>
+              <TableCell>{r.ismanaged ? "Yes" : "No"}</TableCell>
+              <TableCell>
+                <LocalFileLink
+                  orgApiUrl={orgApiUrl}
+                  environmentId={environmentId}
+                  solutionUniqueName={solutionUniqueName}
+                  webresourceId={r.webresourceid}
+                  webresourceName={r.name}
+                  localFiles={localFiles}
+                  link={link}
+                  isModified={!!link && modifiedPaths.has(link.localPath)}
+                  onLinksChanged={refreshLinks}
+                  onPublished={onFilePublished}
+                />
+              </TableCell>
+            </TableRow>
+          );
+        })}
         {displayedResources.length === 0 && (
           <TableRow>
-            <TableCell colSpan={4}>
+            <TableCell colSpan={5}>
               <Text>No web resources match the current filters.</Text>
             </TableCell>
           </TableRow>

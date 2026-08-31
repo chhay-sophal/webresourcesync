@@ -18,7 +18,9 @@ const isProd = process.env.NODE_ENV === "production";
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+// Default 100kb limit is too small for base64-encoded web resource content (JS/CSS files
+// easily exceed that once JSON-escaped), so raise it well above Dataverse's own ~5MB cap.
+app.use(express.json({ limit: "25mb" }));
 
 app.use("/api/config", configRouter);
 app.use("/api/files", filesRouter);

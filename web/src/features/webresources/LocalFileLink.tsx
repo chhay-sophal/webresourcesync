@@ -1,0 +1,127 @@
+import { Badge, Button, Dropdown, Option, Text } from "@fluentui/react-components";
+import { useState } from "react";
+import { publishWebResources, updateWebResourceContent } from "../../api/dataverse";
+import {
+  createLink,
+  deleteLink,
+  getLocalFileContent,
+  type LocalFile,
+  type ResourceLink,
+} from "../../api/local";
+
+function utf8ToBase64(str: string): string {
+  const bytes = new TextEncoder().encode(str);
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary);
+}
+
+interface Props {
+  orgApiUrl: string;
+  environmentId: string;
+  solutionUniqueName: string;
+  webresourceId: string;
+  webresourceName: string;
+  localFiles: LocalFile[];
+  link: ResourceLink | undefined;
+  isModified: boolean;
+  onLinksChanged: () => void;
+  onPublished: (localPath: string) => void;
+}
+
+export function LocalFileLink({
+  orgApiUrl,
+  environmentId,
+  solutionUniqueName,
+  webresourceId,
+  webresourceName,
+  localFiles,
+  link,
+  isModified,
+  onLinksChanged,
+  onPublished,
+}: Props) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleLink(localPath: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      await createLink({
+        environmentUniqueName: environmentId,
+        solutionUniqueName,
+        webresourceId,
+        webresourceName,
+        localPath,
+      });
+      onLinksChanged();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleUnlink() {
+    if (!link) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await deleteLink(link.id);
+      onLinksChanged();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handlePublish() {
+    if (!link) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const content = await getLocalFileContent(link.localPath);
+      await updateWebResourceContent(orgApiUrl, webresourceId, utf8ToBase64(content));
+      await publishWebResources(orgApiUrl, [webresourceId]);
+      onPublished(link.localPath);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      {link ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <Text size={200}>{link.localPath}</Text>
+          {isModified && <Badge color="warning">Modified</Badge>}
+          {isModified && (
+            <Button size="small" appearance="primary" onClick={handlePublish} disabled={busy}>
+              Publish
+            </Button>
+          )}
+          <Button size="small" appearance="subtle" onClick={handleUnlink} disabled={busy}>
+            Unlink
+          </Button>
+        </div>
+      ) : (
+        <Dropdown
+          placeholder={localFiles.length === 0 ? "No local files found" : "Link a file..."}
+          disabled={busy || localFiles.length === 0}
+          onOptionSelect={(_, data) => data.optionValue && handleLink(data.optionValue)}
+        >
+          {localFiles.map((f) => (
+            <Option key={f.path} value={f.path}>
+              {f.path}
+            </Option>
+          ))}
+        </Dropdown>
+      )}
+      {error && <Text style={{ color: "red" }}>{error}</Text>}
+    </div>
+  );
+}

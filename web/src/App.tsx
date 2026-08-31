@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { getAuthStatus, login, logout } from "./api/auth";
 import type { DataverseEnvironment, Solution } from "./api/dataverse";
 import { EnvironmentPicker } from "./features/environments/EnvironmentPicker";
+import { useLocalFiles } from "./features/localfiles/useLocalFiles";
+import { WatchedFolderSettings } from "./features/localfiles/WatchedFolderSettings";
 import { SolutionPicker } from "./features/solutions/SolutionPicker";
 import { WebResourceList, type WebResourceListHandle } from "./features/webresources/WebResourceList";
 
@@ -16,6 +18,7 @@ function App() {
   const [solution, setSolution] = useState<Solution | null>(null);
   const [hasActiveWebResourceFilters, setHasActiveWebResourceFilters] = useState(false);
   const webResourceListRef = useRef<WebResourceListHandle>(null);
+  const localFiles = useLocalFiles();
 
   useEffect(() => {
     getAuthStatus()
@@ -92,6 +95,12 @@ function App() {
         </div>
       </div>
 
+      <WatchedFolderSettings
+        root={localFiles.root}
+        fileCount={localFiles.files.length}
+        onSetRoot={localFiles.setRootFolder}
+      />
+
       <div>
         <Title3>1. Environment</Title3>
         <EnvironmentPicker
@@ -131,6 +140,11 @@ function App() {
             ref={webResourceListRef}
             orgApiUrl={environment.apiUrl}
             solutionId={solution.solutionid}
+            environmentId={environment.id}
+            solutionUniqueName={solution.uniquename}
+            localFiles={localFiles.files}
+            modifiedPaths={localFiles.modifiedPaths}
+            onFilePublished={localFiles.clearModified}
             onActiveFilterOrSortChange={setHasActiveWebResourceFilters}
           />
         </div>

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileWatcher } from "../fileWatcher.js";
+import { pickFolderNative } from "../folderPicker.js";
 
 const WATCHED_EXTENSIONS = new Set([".html", ".htm", ".js", ".css"]);
 
@@ -37,6 +38,15 @@ function resolveWithinRoot(root: string, relativePath: string): string {
 }
 
 export const filesRouter = Router();
+
+filesRouter.post("/pick-folder", async (_req, res) => {
+  try {
+    const selectedPath = await pickFolderNative();
+    res.json({ path: selectedPath });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
 
 filesRouter.get("/", async (_req, res) => {
   const root = fileWatcher.getRoot();
