@@ -1,8 +1,7 @@
-import { Badge, Card, CardHeader, Text, tokens } from "@fluentui/react-components";
+import { Card, CardHeader, Text, tokens } from "@fluentui/react-components";
 import type { ReactElement, ReactNode } from "react";
 
 interface Props {
-  step?: number;
   icon: ReactNode;
   title: string;
   description?: string;
@@ -10,7 +9,7 @@ interface Props {
   children: ReactNode;
 }
 
-export function SectionCard({ step, icon, title, description, action, children }: Props) {
+export function SectionCard({ icon, title, description, action, children }: Props) {
   return (
     <Card style={{ padding: "20px 24px" }}>
       <CardHeader
@@ -31,16 +30,9 @@ export function SectionCard({ step, icon, title, description, action, children }
           </div>
         }
         header={
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {step !== undefined && (
-              <Badge shape="circular" appearance="filled" color="informative" size="small">
-                {step}
-              </Badge>
-            )}
-            <Text weight="semibold" size={400}>
-              {title}
-            </Text>
-          </div>
+          <Text weight="semibold" size={400}>
+            {title}
+          </Text>
         }
         description={description ? <Text size={200}>{description}</Text> : undefined}
         action={action || undefined}
