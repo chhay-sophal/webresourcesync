@@ -28,6 +28,7 @@ import { useLocalFiles } from "./features/localfiles/useLocalFiles";
 import { WatchedFolderSettings } from "./features/localfiles/WatchedFolderSettings";
 import { SolutionPicker } from "./features/solutions/SolutionPicker";
 import { WebResourceList, type WebResourceListHandle } from "./features/webresources/WebResourceList";
+import { usePersistedState } from "./hooks/usePersistedState";
 
 interface Props {
   isDark: boolean;
@@ -40,8 +41,11 @@ function App({ isDark, onToggleTheme }: Props) {
   const [signingIn, setSigningIn] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [tenant, setTenant] = useState("");
-  const [environment, setEnvironment] = useState<DataverseEnvironment | null>(null);
-  const [solution, setSolution] = useState<Solution | null>(null);
+  const [environment, setEnvironment] = usePersistedState<DataverseEnvironment | null>(
+    "wrs.environment",
+    null
+  );
+  const [solution, setSolution] = usePersistedState<Solution | null>("wrs.solution", null);
   const [hasActiveWebResourceFilters, setHasActiveWebResourceFilters] = useState(false);
   const [folderBarOpen, setFolderBarOpen] = useState(false);
   const [environmentBarOpen, setEnvironmentBarOpen] = useState(false);
