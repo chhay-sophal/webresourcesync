@@ -311,7 +311,7 @@ export function WebResourceList({
                   webresourceName={r.name}
                   localFiles={localFiles}
                   link={link}
-                  isModified={!!link && modifiedPaths.has(link.localPath)}
+                  hasPendingChangeEvent={!!link && modifiedPaths.has(link.localPath)}
                   onLinksChanged={refreshLinks}
                   onPublished={onFilePublished}
                 />

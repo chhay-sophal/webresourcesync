@@ -1,7 +1,7 @@
 import { Badge, Button, Dropdown, Option, Text, tokens } from "@fluentui/react-components";
 import { CloudArrowUpRegular, LinkDismissRegular, LinkRegular } from "@fluentui/react-icons";
-import { useState } from "react";
-import { publishWebResources, updateWebResourceContent } from "../../api/dataverse";
+import { useEffect, useState } from "react";
+import { getWebResourceContent, publishWebResources, updateWebResourceContent } from "../../api/dataverse";
 import {
   createLink,
   deleteLink,
@@ -17,6 +17,12 @@ function utf8ToBase64(str: string): string {
   return btoa(binary);
 }
 
+function base64ToUtf8(base64: string): string {
+  const binary = atob(base64);
+  const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
 interface Props {
   orgApiUrl: string;
   environmentId: string;
@@ -25,7 +31,9 @@ interface Props {
   webresourceName: string;
   localFiles: LocalFile[];
   link: ResourceLink | undefined;
-  isModified: boolean;
+  /** A local file-change event landed for this resource's path since it was last checked —
+   * used only to trigger a fresh content comparison, not as the modified state itself. */
+  hasPendingChangeEvent: boolean;
   onLinksChanged: () => void;
   onPublished: (localPath: string) => void;
 }
@@ -38,12 +46,39 @@ export function LocalFileLink({
   webresourceName,
   localFiles,
   link,
-  isModified,
+  hasPendingChangeEvent,
   onLinksChanged,
   onPublished,
 }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isModified, setIsModified] = useState(false);
+
+  // Compares actual local file content against what's currently published in Dataverse,
+  // rather than trusting "a change event fired" as a proxy — that alone can't tell you
+  // whether the edit was reverted, or whether the file diverged before this session ever
+  // started watching it.
+  useEffect(() => {
+    if (!link) {
+      setIsModified(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const [localContent, remoteBase64] = await Promise.all([
+          getLocalFileContent(link.localPath),
+          getWebResourceContent(orgApiUrl, webresourceId),
+        ]);
+        if (!cancelled) setIsModified(localContent !== base64ToUtf8(remoteBase64));
+      } catch {
+        // Transient fetch error — leave the previous known state alone rather than guess.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [link, hasPendingChangeEvent, orgApiUrl, webresourceId]);
 
   async function handleLink(localPath: string) {
     setBusy(true);
@@ -86,6 +121,7 @@ export function LocalFileLink({
       const content = await getLocalFileContent(link.localPath);
       await updateWebResourceContent(orgApiUrl, webresourceId, utf8ToBase64(content));
       await publishWebResources(orgApiUrl, [webresourceId]);
+      setIsModified(false);
       onPublished(link.localPath);
     } catch (err) {
       setError((err as Error).message);
