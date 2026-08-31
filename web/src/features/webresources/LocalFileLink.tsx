@@ -95,23 +95,17 @@ export function LocalFileLink({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+    <div className="flex min-w-0 flex-col gap-1">
       {link ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-          <Text
-            size={200}
-            title={link.localPath}
-            style={{
-              flex: "1 1 auto",
-              minWidth: 0,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
+        <div className="flex min-w-0 items-center gap-1.5">
+          <Text size={200} title={link.localPath} className="min-w-0 flex-1 truncate">
             {link.localPath}
           </Text>
-          {isModified && <Badge color="warning" style={{ flexShrink: 0 }}>Modified</Badge>}
+          {isModified && (
+            <Badge color="warning" className="shrink-0">
+              Modified
+            </Badge>
+          )}
           {isModified && (
             <Button
               size="small"
@@ -119,7 +113,7 @@ export function LocalFileLink({
               icon={<CloudArrowUpRegular />}
               onClick={handlePublish}
               disabled={busy}
-              style={{ flexShrink: 0 }}
+              className="shrink-0"
             >
               Publish
             </Button>
@@ -130,7 +124,7 @@ export function LocalFileLink({
             icon={<LinkDismissRegular />}
             onClick={handleUnlink}
             disabled={busy}
-            style={{ flexShrink: 0 }}
+            className="shrink-0"
           >
             Unlink
           </Button>
@@ -141,7 +135,7 @@ export function LocalFileLink({
           disabled={busy || localFiles.length === 0}
           onOptionSelect={(_, data) => data.optionValue && handleLink(data.optionValue)}
           button={
-            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span className="flex items-center gap-1.5">
               <LinkRegular />
               {localFiles.length === 0 ? "No local files found" : "Link a file..."}
             </span>

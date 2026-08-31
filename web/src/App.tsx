@@ -80,21 +80,11 @@ function App({ isDark, onToggleTheme }: Props) {
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: tokens.colorNeutralBackground2,
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      <div style={{ position: "sticky", top: 0, zIndex: 1 }}>
+    <div className="flex min-h-screen flex-col" style={{ background: tokens.colorNeutralBackground2 }}>
+      <div className="sticky top-0 z-10">
         <header
+          className="flex items-center justify-between px-6 py-2.5"
           style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "10px 24px",
             background: tokens.colorNeutralBackground1,
             borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
           }}
@@ -102,7 +92,7 @@ function App({ isDark, onToggleTheme }: Props) {
           <Text weight="semibold" size={500}>
             Web Resource Sync
           </Text>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div className="flex items-center gap-2">
             {username && <Text size={200}>{username}</Text>}
             <Button
               appearance="subtle"
@@ -119,14 +109,10 @@ function App({ isDark, onToggleTheme }: Props) {
 
         {username && (
           <div
+            className="flex flex-wrap items-center gap-1 px-6 py-1"
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
-              padding: "4px 24px",
               background: tokens.colorNeutralBackground1,
               borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
-              flexWrap: "wrap",
             }}
           >
             <SettingsBarItem
@@ -143,7 +129,7 @@ function App({ isDark, onToggleTheme }: Props) {
               />
             </SettingsBarItem>
 
-            <Divider vertical style={{ height: 28 }} />
+            <Divider vertical className="h-7" />
 
             <SettingsBarItem
               icon={<CloudRegular />}
@@ -162,7 +148,7 @@ function App({ isDark, onToggleTheme }: Props) {
               />
             </SettingsBarItem>
 
-            <Divider vertical style={{ height: 28 }} />
+            <Divider vertical className="h-7" />
 
             <SettingsBarItem
               icon={<AppsListDetailRegular />}
@@ -187,25 +173,14 @@ function App({ isDark, onToggleTheme }: Props) {
         )}
       </div>
 
-      <main
-        style={{
-          flex: 1,
-          width: "100%",
-          margin: "0 auto",
-          padding: 24,
-          boxSizing: "border-box",
-          display: "flex",
-          flexDirection: "column",
-          gap: 20,
-        }}
-      >
+      <main className="mx-auto flex w-full flex-1 flex-col gap-5 p-6">
         {checkingStatus ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: 48 }}>
+          <div className="flex justify-center p-12">
             <Spinner label="Checking sign-in status..." />
           </div>
         ) : !username ? (
-          <Card style={{ maxWidth: 420, margin: "48px auto", padding: 32 }}>
-            <Title2 as="h1" style={{ marginBottom: 20 }}>
+          <Card className="mx-auto my-12 max-w-[420px] p-8">
+            <Title2 as="h1" className="mb-5">
               Sign in to get started
             </Title2>
             <Field
@@ -223,17 +198,17 @@ function App({ isDark, onToggleTheme }: Props) {
               appearance="primary"
               onClick={handleSignIn}
               disabled={signingIn}
-              style={{ marginTop: 16, width: "100%" }}
+              className="mt-4 w-full"
             >
               {signingIn ? "Waiting for browser sign-in..." : "Sign in"}
             </Button>
             {signingIn && (
-              <Text size={200} style={{ display: "block", marginTop: 8 }}>
+              <Text size={200} className="mt-2 block">
                 A browser window has opened to sign in with your Microsoft account.
               </Text>
             )}
             {authError && (
-              <Text style={{ color: tokens.colorPaletteRedForeground1, display: "block", marginTop: 8 }}>
+              <Text className="mt-2 block" style={{ color: tokens.colorPaletteRedForeground1 }}>
                 {authError}
               </Text>
             )}
@@ -266,7 +241,7 @@ function App({ isDark, onToggleTheme }: Props) {
             />
           </SectionCard>
         ) : (
-          <div style={{ display: "flex", justifyContent: "center", padding: 64 }}>
+          <div className="flex justify-center p-16">
             <Text style={{ color: tokens.colorNeutralForeground3 }}>
               Pick an environment and solution above to see its web resources.
             </Text>

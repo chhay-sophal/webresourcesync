@@ -11,16 +11,12 @@ interface Props {
 
 export function SectionCard({ icon, title, description, action, children }: Props) {
   return (
-    <Card style={{ padding: "20px 24px" }}>
+    <Card className="px-6 py-5">
       <CardHeader
         image={
           <div
+            className="flex h-8 w-8 items-center justify-center"
             style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 32,
-              height: 32,
               borderRadius: tokens.borderRadiusMedium,
               background: tokens.colorBrandBackground2,
               color: tokens.colorBrandForeground2,
@@ -37,7 +33,7 @@ export function SectionCard({ icon, title, description, action, children }: Prop
         description={description ? <Text size={200}>{description}</Text> : undefined}
         action={action || undefined}
       />
-      <div style={{ marginTop: 16 }}>{children}</div>
+      <div className="mt-4">{children}</div>
     </Card>
   );
 }

@@ -1,3 +1,10 @@
+@import "tailwindcss";
+
+/* Fluent UI's theme (light/dark) is the source of truth for color; drive Tailwind's
+   `dark:` variant off the same `.dark` class Root.tsx toggles, instead of Tailwind's
+   default prefers-color-scheme media query, so a manual theme toggle stays in sync. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   color-scheme: light dark;
 }

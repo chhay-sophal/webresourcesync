@@ -48,7 +48,7 @@ export function EnvironmentPicker({ selected, onSelect }: Props) {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div className="flex flex-col gap-3">
       {!environments && !discoveryError && <Spinner label="Loading environments..." />}
       {discoveryError && (
         <Text style={{ color: tokens.colorPaletteRedForeground1 }}>
@@ -81,9 +81,9 @@ export function EnvironmentPicker({ selected, onSelect }: Props) {
         label="Or connect directly"
         hint="Paste the Web API endpoint from the environment's Power Apps 'Developer resources' page."
       >
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className="flex gap-2">
           <Input
-            style={{ flex: 1 }}
+            className="flex-1"
             value={manualUrl}
             onChange={(_, data) => setManualUrl(data.value)}
             placeholder="https://yourorg.api.crm.dynamics.com/api/data/v9.2/"

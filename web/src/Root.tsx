@@ -16,8 +16,14 @@ export function Root() {
     return () => mq.removeEventListener("change", handler);
   }, []);
 
+  // Tailwind's `dark:` variant (see index.css) reads this class, so it stays in sync
+  // with the same isDark state driving Fluent's theme.
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", isDark);
+  }, [isDark]);
+
   return (
-    <FluentProvider theme={isDark ? webDarkTheme : webLightTheme} style={{ minHeight: "100vh" }}>
+    <FluentProvider theme={isDark ? webDarkTheme : webLightTheme}>
       <App isDark={isDark} onToggleTheme={() => setIsDark((d) => !d)} />
     </FluentProvider>
   );

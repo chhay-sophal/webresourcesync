@@ -46,12 +46,12 @@ export function WatchedFolderSettings({ root, fileCount, onSetRoot }: Props) {
   return (
     <div>
       <Field hint="The folder on this machine containing your HTML/JS/CSS files. Files here can be linked to web resources below.">
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className="flex gap-2">
           <Button icon={<FolderOpenRegular />} onClick={handleBrowse} disabled={browsing || saving}>
             {browsing ? "Waiting for dialog..." : "Browse..."}
           </Button>
           <Input
-            style={{ flex: 1 }}
+            className="flex-1"
             value={path}
             onChange={(_, data) => setPath(data.value)}
             placeholder="D:\path\to\your\webresources"
@@ -67,7 +67,7 @@ export function WatchedFolderSettings({ root, fileCount, onSetRoot }: Props) {
         </div>
       </Field>
       {root && (
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>
+        <div className="mt-2 flex items-center gap-1.5">
           <CheckmarkCircleRegular style={{ color: tokens.colorPaletteGreenForeground1 }} />
           <Text size={200}>
             Watching {root} — {fileCount} file(s) found.
@@ -75,7 +75,7 @@ export function WatchedFolderSettings({ root, fileCount, onSetRoot }: Props) {
         </div>
       )}
       {error && (
-        <Text style={{ color: tokens.colorPaletteRedForeground1, display: "block", marginTop: 8 }}>
+        <Text className="mt-2 block" style={{ color: tokens.colorPaletteRedForeground1 }}>
           {error}
         </Text>
       )}

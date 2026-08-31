@@ -184,11 +184,11 @@ export function WebResourceList({
   if (resources.length === 0) return <Text>No web resources found in this solution.</Text>;
 
   return (
-    <div style={{ overflowX: "auto" }}>
-    <Table style={{ tableLayout: "fixed", width: "100%", minWidth: 760 }}>
+    <div className="overflow-x-auto">
+    <Table className="w-full table-fixed min-w-[760px]">
       <TableHeader>
         <TableRow>
-          <TableHeaderCell style={{ width: "25%" }}>
+          <TableHeaderCell className="w-1/4">
             <HeaderContent label="Name">
               <ColumnHeaderMenu
                 active={sortDirectionFor("name") !== null || filters.name !== ""}
@@ -208,7 +208,7 @@ export function WebResourceList({
               </ColumnHeaderMenu>
             </HeaderContent>
           </TableHeaderCell>
-          <TableHeaderCell style={{ width: "25%" }}>
+          <TableHeaderCell className="w-1/4">
             <HeaderContent label="Display name">
               <ColumnHeaderMenu
                 active={sortDirectionFor("displayname") !== null || filters.displayname !== ""}
@@ -230,7 +230,7 @@ export function WebResourceList({
               </ColumnHeaderMenu>
             </HeaderContent>
           </TableHeaderCell>
-          <TableHeaderCell style={{ width: "10%" }}>
+          <TableHeaderCell className="w-[10%]">
             <HeaderContent label="Type">
               <ColumnHeaderMenu
                 active={sortDirectionFor("type") !== null || filters.types.size > 0}
@@ -241,7 +241,7 @@ export function WebResourceList({
                   setSort((s) => (s?.column === "type" ? null : s));
                 }}
               >
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <div className="flex flex-col gap-1">
                   {availableTypes.map(([code, label]) => (
                     <Checkbox
                       key={code}
@@ -254,7 +254,7 @@ export function WebResourceList({
               </ColumnHeaderMenu>
             </HeaderContent>
           </TableHeaderCell>
-          <TableHeaderCell style={{ width: "7%" }}>
+          <TableHeaderCell className="w-[7%]">
             <HeaderContent label="Managed">
               <ColumnHeaderMenu
                 active={sortDirectionFor("managed") !== null || filters.managed !== "all"}
@@ -276,7 +276,7 @@ export function WebResourceList({
               </ColumnHeaderMenu>
             </HeaderContent>
           </TableHeaderCell>
-          <TableHeaderCell style={{ width: "33%" }}>Local file</TableHeaderCell>
+          <TableHeaderCell className="w-1/3">Local file</TableHeaderCell>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -334,7 +334,7 @@ export function WebResourceList({
 
 function HeaderContent({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+    <div className="flex items-center justify-between gap-2">
       <span>{label}</span>
       {children}
     </div>

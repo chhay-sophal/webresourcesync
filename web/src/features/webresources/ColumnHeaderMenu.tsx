@@ -30,11 +30,11 @@ export function ColumnHeaderMenu({ active, sortDirection, onSort, onClear, child
         />
       </MenuTrigger>
       <MenuPopover>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 220, padding: 4 }}>
+        <div className="flex min-w-[220px] flex-col gap-2 p-1">
           <Text size={200} weight="semibold">
             Sort
           </Text>
-          <div style={{ display: "flex", gap: 4 }}>
+          <div className="flex gap-1">
             <Button
               size="small"
               appearance={sortDirection === "asc" ? "primary" : "secondary"}

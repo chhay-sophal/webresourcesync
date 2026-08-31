@@ -21,22 +21,17 @@ export function SettingsBarItem({ icon, label, value, disabled, open, onOpenChan
     >
       <PopoverTrigger disableButtonEnhancement>
         <Button appearance="subtle" disabled={disabled} icon={icon}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.25 }}>
+          <div className="flex flex-col items-start leading-tight">
             <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>
               {label}
             </Text>
-            <Text
-              size={300}
-              truncate
-              wrap={false}
-              style={{ maxWidth: 200, textAlign: "left" }}
-            >
+            <Text size={300} truncate wrap={false} className="max-w-[200px] text-left">
               {value}
             </Text>
           </div>
         </Button>
       </PopoverTrigger>
-      <PopoverSurface style={{ minWidth: 340, maxWidth: 440 }}>{children}</PopoverSurface>
+      <PopoverSurface className="min-w-[340px] max-w-[440px]">{children}</PopoverSurface>
     </Popover>
   );
 }
