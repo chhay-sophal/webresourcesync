@@ -1,4 +1,5 @@
-import { Button, Field, Input, Text } from "@fluentui/react-components";
+import { Button, Field, Input, Text, tokens } from "@fluentui/react-components";
+import { CheckmarkCircleRegular, FolderOpenRegular, SaveRegular } from "@fluentui/react-icons";
 import { useState } from "react";
 import { pickFolder } from "../../api/local";
 
@@ -44,12 +45,9 @@ export function WatchedFolderSettings({ root, fileCount, onSetRoot }: Props) {
 
   return (
     <div>
-      <Field
-        label="Local folder"
-        hint="The folder on this machine containing your HTML/JS/CSS files. Files here can be linked to web resources below."
-      >
+      <Field hint="The folder on this machine containing your HTML/JS/CSS files. Files here can be linked to web resources below.">
         <div style={{ display: "flex", gap: 8 }}>
-          <Button onClick={handleBrowse} disabled={browsing || saving}>
+          <Button icon={<FolderOpenRegular />} onClick={handleBrowse} disabled={browsing || saving}>
             {browsing ? "Waiting for dialog..." : "Browse..."}
           </Button>
           <Input
@@ -60,6 +58,7 @@ export function WatchedFolderSettings({ root, fileCount, onSetRoot }: Props) {
           />
           <Button
             appearance="primary"
+            icon={<SaveRegular />}
             onClick={() => applyRoot(path.trim())}
             disabled={saving || browsing || !path.trim()}
           >
@@ -67,8 +66,19 @@ export function WatchedFolderSettings({ root, fileCount, onSetRoot }: Props) {
           </Button>
         </div>
       </Field>
-      {root && <Text size={200}>Watching {root} — {fileCount} file(s) found.</Text>}
-      {error && <Text style={{ color: "red" }}>{error}</Text>}
+      {root && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>
+          <CheckmarkCircleRegular style={{ color: tokens.colorPaletteGreenForeground1 }} />
+          <Text size={200}>
+            Watching {root} — {fileCount} file(s) found.
+          </Text>
+        </div>
+      )}
+      {error && (
+        <Text style={{ color: tokens.colorPaletteRedForeground1, display: "block", marginTop: 8 }}>
+          {error}
+        </Text>
+      )}
     </div>
   );
 }

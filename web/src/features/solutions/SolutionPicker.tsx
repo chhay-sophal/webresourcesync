@@ -1,4 +1,4 @@
-import { Dropdown, Option, Spinner, Text } from "@fluentui/react-components";
+import { Dropdown, Option, Spinner, Text, tokens } from "@fluentui/react-components";
 import { useEffect, useState } from "react";
 import { listSolutions, type Solution } from "../../api/dataverse";
 
@@ -19,7 +19,7 @@ export function SolutionPicker({ orgApiUrl, selected, onSelect }: Props) {
       .catch((err) => setError(err.message));
   }, [orgApiUrl]);
 
-  if (error) return <Text style={{ color: "red" }}>{error}</Text>;
+  if (error) return <Text style={{ color: tokens.colorPaletteRedForeground1 }}>{error}</Text>;
   if (!solutions) return <Spinner label="Loading solutions..." />;
 
   return (

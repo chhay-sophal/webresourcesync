@@ -1,4 +1,15 @@
-import { Button, Dropdown, Field, Input, Option, Spinner, Text } from "@fluentui/react-components";
+import {
+  Button,
+  Divider,
+  Dropdown,
+  Field,
+  Input,
+  Option,
+  Spinner,
+  Text,
+  tokens,
+} from "@fluentui/react-components";
+import { PlugConnectedRegular } from "@fluentui/react-icons";
 import { useEffect, useState } from "react";
 import { listEnvironments, type DataverseEnvironment } from "../../api/dataverse";
 
@@ -40,7 +51,9 @@ export function EnvironmentPicker({ selected, onSelect }: Props) {
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {!environments && !discoveryError && <Spinner label="Loading environments..." />}
       {discoveryError && (
-        <Text style={{ color: "red" }}>Couldn't list environments: {discoveryError}</Text>
+        <Text style={{ color: tokens.colorPaletteRedForeground1 }}>
+          Couldn't list environments: {discoveryError}
+        </Text>
       )}
       {environments && environments.length === 0 && (
         <Text>No environments found via discovery — connect directly below instead.</Text>
@@ -62,6 +75,8 @@ export function EnvironmentPicker({ selected, onSelect }: Props) {
         </Dropdown>
       )}
 
+      <Divider />
+
       <Field
         label="Or connect directly"
         hint="Paste the Web API endpoint from the environment's Power Apps 'Developer resources' page."
@@ -73,7 +88,7 @@ export function EnvironmentPicker({ selected, onSelect }: Props) {
             onChange={(_, data) => setManualUrl(data.value)}
             placeholder="https://yourorg.api.crm.dynamics.com/api/data/v9.2/"
           />
-          <Button onClick={connectManually} disabled={!manualUrl.trim()}>
+          <Button icon={<PlugConnectedRegular />} onClick={connectManually} disabled={!manualUrl.trim()}>
             Connect
           </Button>
         </div>

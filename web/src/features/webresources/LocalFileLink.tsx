@@ -1,4 +1,5 @@
-import { Badge, Button, Dropdown, Option, Text } from "@fluentui/react-components";
+import { Badge, Button, Dropdown, Option, Text, tokens } from "@fluentui/react-components";
+import { CloudArrowUpRegular, LinkDismissRegular, LinkRegular } from "@fluentui/react-icons";
 import { useState } from "react";
 import { publishWebResources, updateWebResourceContent } from "../../api/dataverse";
 import {
@@ -100,11 +101,23 @@ export function LocalFileLink({
           <Text size={200}>{link.localPath}</Text>
           {isModified && <Badge color="warning">Modified</Badge>}
           {isModified && (
-            <Button size="small" appearance="primary" onClick={handlePublish} disabled={busy}>
+            <Button
+              size="small"
+              appearance="primary"
+              icon={<CloudArrowUpRegular />}
+              onClick={handlePublish}
+              disabled={busy}
+            >
               Publish
             </Button>
           )}
-          <Button size="small" appearance="subtle" onClick={handleUnlink} disabled={busy}>
+          <Button
+            size="small"
+            appearance="subtle"
+            icon={<LinkDismissRegular />}
+            onClick={handleUnlink}
+            disabled={busy}
+          >
             Unlink
           </Button>
         </div>
@@ -113,6 +126,12 @@ export function LocalFileLink({
           placeholder={localFiles.length === 0 ? "No local files found" : "Link a file..."}
           disabled={busy || localFiles.length === 0}
           onOptionSelect={(_, data) => data.optionValue && handleLink(data.optionValue)}
+          button={
+            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <LinkRegular />
+              {localFiles.length === 0 ? "No local files found" : "Link a file..."}
+            </span>
+          }
         >
           {localFiles.map((f) => (
             <Option key={f.path} value={f.path}>
@@ -121,7 +140,11 @@ export function LocalFileLink({
           ))}
         </Dropdown>
       )}
-      {error && <Text style={{ color: "red" }}>{error}</Text>}
+      {error && (
+        <Text size={200} style={{ color: tokens.colorPaletteRedForeground1 }}>
+          {error}
+        </Text>
+      )}
     </div>
   );
 }

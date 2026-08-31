@@ -11,6 +11,7 @@ import {
   TableHeaderCell,
   TableRow,
   Text,
+  tokens,
 } from "@fluentui/react-components";
 import { useCallback, useEffect, useImperativeHandle, useMemo, useState, type ReactNode, type Ref } from "react";
 import { listWebResourcesForSolution, type WebResource } from "../../api/dataverse";
@@ -177,11 +178,12 @@ export function WebResourceList({
     });
   }
 
-  if (error) return <Text style={{ color: "red" }}>{error}</Text>;
+  if (error) return <Text style={{ color: tokens.colorPaletteRedForeground1 }}>{error}</Text>;
   if (!resources) return <Spinner label="Loading web resources..." />;
   if (resources.length === 0) return <Text>No web resources found in this solution.</Text>;
 
   return (
+    <div style={{ overflowX: "auto" }}>
     <Table>
       <TableHeader>
         <TableRow>
@@ -311,6 +313,7 @@ export function WebResourceList({
         )}
       </TableBody>
     </Table>
+    </div>
   );
 }
 
