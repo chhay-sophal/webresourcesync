@@ -7,6 +7,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableCellLayout,
   TableHeader,
   TableHeaderCell,
   TableRow,
@@ -184,10 +185,10 @@ export function WebResourceList({
 
   return (
     <div style={{ overflowX: "auto" }}>
-    <Table>
+    <Table style={{ tableLayout: "fixed", width: "100%", minWidth: 760 }}>
       <TableHeader>
         <TableRow>
-          <TableHeaderCell>
+          <TableHeaderCell style={{ width: "25%" }}>
             <HeaderContent label="Name">
               <ColumnHeaderMenu
                 active={sortDirectionFor("name") !== null || filters.name !== ""}
@@ -207,7 +208,7 @@ export function WebResourceList({
               </ColumnHeaderMenu>
             </HeaderContent>
           </TableHeaderCell>
-          <TableHeaderCell>
+          <TableHeaderCell style={{ width: "25%" }}>
             <HeaderContent label="Display name">
               <ColumnHeaderMenu
                 active={sortDirectionFor("displayname") !== null || filters.displayname !== ""}
@@ -229,7 +230,7 @@ export function WebResourceList({
               </ColumnHeaderMenu>
             </HeaderContent>
           </TableHeaderCell>
-          <TableHeaderCell>
+          <TableHeaderCell style={{ width: "10%" }}>
             <HeaderContent label="Type">
               <ColumnHeaderMenu
                 active={sortDirectionFor("type") !== null || filters.types.size > 0}
@@ -253,7 +254,7 @@ export function WebResourceList({
               </ColumnHeaderMenu>
             </HeaderContent>
           </TableHeaderCell>
-          <TableHeaderCell>
+          <TableHeaderCell style={{ width: "7%" }}>
             <HeaderContent label="Managed">
               <ColumnHeaderMenu
                 active={sortDirectionFor("managed") !== null || filters.managed !== "all"}
@@ -275,7 +276,7 @@ export function WebResourceList({
               </ColumnHeaderMenu>
             </HeaderContent>
           </TableHeaderCell>
-          <TableHeaderCell>Local file</TableHeaderCell>
+          <TableHeaderCell style={{ width: "33%" }}>Local file</TableHeaderCell>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -283,10 +284,24 @@ export function WebResourceList({
           const link = links.find((l) => l.webresourceId === r.webresourceid);
           return (
             <TableRow key={r.webresourceid}>
-              <TableCell>{r.name}</TableCell>
-              <TableCell>{r.displayname}</TableCell>
-              <TableCell>{TYPE_LABELS[r.webresourcetype] ?? r.webresourcetype}</TableCell>
-              <TableCell>{r.ismanaged ? "Yes" : "No"}</TableCell>
+              <TableCell>
+                <TableCellLayout truncate title={r.name}>
+                  {r.name}
+                </TableCellLayout>
+              </TableCell>
+              <TableCell>
+                <TableCellLayout truncate title={r.displayname}>
+                  {r.displayname}
+                </TableCellLayout>
+              </TableCell>
+              <TableCell>
+                <TableCellLayout truncate>
+                  {TYPE_LABELS[r.webresourcetype] ?? r.webresourcetype}
+                </TableCellLayout>
+              </TableCell>
+              <TableCell>
+                <TableCellLayout truncate>{r.ismanaged ? "Yes" : "No"}</TableCellLayout>
+              </TableCell>
               <TableCell>
                 <LocalFileLink
                   orgApiUrl={orgApiUrl}

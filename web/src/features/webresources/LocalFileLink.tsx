@@ -95,11 +95,23 @@ export function LocalFileLink({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
       {link ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <Text size={200}>{link.localPath}</Text>
-          {isModified && <Badge color="warning">Modified</Badge>}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+          <Text
+            size={200}
+            title={link.localPath}
+            style={{
+              flex: "1 1 auto",
+              minWidth: 0,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {link.localPath}
+          </Text>
+          {isModified && <Badge color="warning" style={{ flexShrink: 0 }}>Modified</Badge>}
           {isModified && (
             <Button
               size="small"
@@ -107,6 +119,7 @@ export function LocalFileLink({
               icon={<CloudArrowUpRegular />}
               onClick={handlePublish}
               disabled={busy}
+              style={{ flexShrink: 0 }}
             >
               Publish
             </Button>
@@ -117,6 +130,7 @@ export function LocalFileLink({
             icon={<LinkDismissRegular />}
             onClick={handleUnlink}
             disabled={busy}
+            style={{ flexShrink: 0 }}
           >
             Unlink
           </Button>
