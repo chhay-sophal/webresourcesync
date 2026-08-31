@@ -1,10 +1,10 @@
 import { Button, Field, Input, Spinner, Text, Title2, Title3 } from "@fluentui/react-components";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getAuthStatus, login, logout } from "./api/auth";
 import type { DataverseEnvironment, Solution } from "./api/dataverse";
 import { EnvironmentPicker } from "./features/environments/EnvironmentPicker";
 import { SolutionPicker } from "./features/solutions/SolutionPicker";
-import { WebResourceList } from "./features/webresources/WebResourceList";
+import { WebResourceList, type WebResourceListHandle } from "./features/webresources/WebResourceList";
 
 function App() {
   const [username, setUsername] = useState<string | null>(null);
@@ -14,6 +14,8 @@ function App() {
   const [tenant, setTenant] = useState("");
   const [environment, setEnvironment] = useState<DataverseEnvironment | null>(null);
   const [solution, setSolution] = useState<Solution | null>(null);
+  const [hasActiveWebResourceFilters, setHasActiveWebResourceFilters] = useState(false);
+  const webResourceListRef = useRef<WebResourceListHandle>(null);
 
   useEffect(() => {
     getAuthStatus()
@@ -114,8 +116,23 @@ function App() {
 
       {environment && solution && (
         <div>
-          <Title3>3. Web resources</Title3>
-          <WebResourceList orgApiUrl={environment.apiUrl} solutionId={solution.solutionid} />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Title3>3. Web resources</Title3>
+            {hasActiveWebResourceFilters && (
+              <Button
+                appearance="subtle"
+                onClick={() => webResourceListRef.current?.clearAllFiltersAndSort()}
+              >
+                Clear filters
+              </Button>
+            )}
+          </div>
+          <WebResourceList
+            ref={webResourceListRef}
+            orgApiUrl={environment.apiUrl}
+            solutionId={solution.solutionid}
+            onActiveFilterOrSortChange={setHasActiveWebResourceFilters}
+          />
         </div>
       )}
     </div>
