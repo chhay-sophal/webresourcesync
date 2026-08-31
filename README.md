@@ -7,34 +7,25 @@ your machine, instead of re-uploading content through the maker portal by hand.
 - Link a web resource to a local file; edits you save in VS Code show up live in the app
 - Create, update, publish, and delete web resources without leaving the tool
 
-## One-time setup
+## Sign-in — no app registration needed
 
-### 1. Register an Entra ID app
+There's no setup step. Click **Sign in** and your default browser opens to a normal
+Microsoft sign-in page; approve it and you're in.
 
-1. Go to the [Azure Portal → App registrations](https://portal.azure.com) → **New registration**.
-2. Name it (e.g. "Web Resource Sync"), leave supported account types as needed for your tenant.
-3. Under **Authentication**, add a platform: **Single-page application**, redirect URI
-   `http://localhost:5173/redirect.html`.
-4. Under **API permissions**, add **Dynamics CRM** → Delegated permissions → `user_impersonation`.
-   Grant admin consent if your tenant requires it.
-5. Copy the **Application (client) ID** and your **tenant ID** (or use `common` for
-   multi-tenant/personal accounts).
+This works by reusing Microsoft's own published client ID for XRM tooling (the same one
+[XrmToolBox](https://www.xrmtoolbox.com/) and the Dataverse `ServiceClient`/`pac cli` use —
+see [Microsoft's docs](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/authenticate-oauth)),
+so you don't need to register an Entra app or ask a tenant admin to grant consent for a
+custom one. The backend runs the sign-in itself (opens your system browser, catches the
+redirect on a local port, exchanges the code for tokens) and proxies every Dataverse call
+server-to-server, so there's no browser CORS setup on the environment either.
 
-### 2. Enable CORS on your Dataverse environment
-
-1. Go to the [Power Platform Admin Center](https://admin.powerplatform.microsoft.com) →
-   your environment → **Settings** → **Product** → **Features**.
-2. Under **Cross-Origin Resource Sharing (CORS)**, add `http://localhost:5173` (the dev
-   server origin) to the allowed origins list. Add your production origin too if you deploy
-   this tool somewhere.
-
-### 3. Configure the app
-
-```
-cp web/.env.example web/.env.local
-```
-
-Edit `web/.env.local` with your client ID and tenant ID from step 1.
+Two caveats worth knowing:
+- Microsoft documents this client ID as a prototyping/sample credential, not a
+  long-term-guaranteed one — it could be revoked or changed without notice.
+- If your tenant's admin has locked down **all** user consent (not just unverified
+  third-party apps), even this will hit the same admin-consent wall a custom app would —
+  that's a deliberate security boundary only an admin can lift.
 
 ## Running
 
@@ -52,5 +43,6 @@ The backend watches a folder on your machine that you choose in the app. Each we
 can be linked to one file in that folder. When you save the file, the app shows it as
 "modified" immediately; click **Publish** to push the new content to Dataverse and publish it.
 
-Link data is stored locally in `.webresourcesync/` in this repo (git-ignored) — nothing
-about your local files is sent anywhere except the content you explicitly publish.
+Link data and your cached sign-in tokens are stored locally in `.webresourcesync/` in this
+repo (git-ignored) — nothing about your local files is sent anywhere except the content you
+explicitly publish.

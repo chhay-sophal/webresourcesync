@@ -7,6 +7,8 @@ const LINKS_PATH = path.join(STORE_DIR, "links.json");
 
 export interface Config {
   watchedRoot: string | null;
+  /** homeAccountId of the MSAL account to use, so repeat logins/cached accounts don't drift. */
+  activeHomeAccountId?: string | null;
 }
 
 export interface Link {
@@ -38,7 +40,7 @@ async function writeJson(filePath: string, data: unknown) {
 }
 
 export async function readConfig(): Promise<Config> {
-  return readJson<Config>(CONFIG_PATH, { watchedRoot: null });
+  return readJson<Config>(CONFIG_PATH, { watchedRoot: null, activeHomeAccountId: null });
 }
 
 export async function writeConfig(config: Config): Promise<void> {

@@ -1,28 +1,79 @@
-import { useMsal } from "@azure/msal-react";
-import { Button, Text, Title2, Title3 } from "@fluentui/react-components";
-import { useState } from "react";
-import type { DataverseEnvironment } from "./api/discovery";
-import type { Solution } from "./api/dataverse";
+import { Button, Field, Input, Spinner, Text, Title2, Title3 } from "@fluentui/react-components";
+import { useEffect, useState } from "react";
+import { getAuthStatus, login, logout } from "./api/auth";
+import type { DataverseEnvironment, Solution } from "./api/dataverse";
 import { EnvironmentPicker } from "./features/environments/EnvironmentPicker";
 import { SolutionPicker } from "./features/solutions/SolutionPicker";
 import { WebResourceList } from "./features/webresources/WebResourceList";
 
 function App() {
-  const { instance, accounts } = useMsal();
+  const [username, setUsername] = useState<string | null>(null);
+  const [checkingStatus, setCheckingStatus] = useState(true);
+  const [signingIn, setSigningIn] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [tenant, setTenant] = useState("");
   const [environment, setEnvironment] = useState<DataverseEnvironment | null>(null);
   const [solution, setSolution] = useState<Solution | null>(null);
 
-  const isSignedIn = accounts.length > 0;
+  useEffect(() => {
+    getAuthStatus()
+      .then((status) => setUsername(status.signedIn ? status.username ?? null : null))
+      .finally(() => setCheckingStatus(false));
+  }, []);
 
-  if (!isSignedIn) {
+  async function handleSignIn() {
+    setSigningIn(true);
+    setAuthError(null);
+    try {
+      const result = await login(tenant.trim() || undefined);
+      setUsername(result.username);
+    } catch (err) {
+      setAuthError((err as Error).message);
+    } finally {
+      setSigningIn(false);
+    }
+  }
+
+  async function handleSignOut() {
+    await logout();
+    setUsername(null);
+    setEnvironment(null);
+    setSolution(null);
+  }
+
+  if (checkingStatus) {
     return (
       <div style={{ padding: 24 }}>
+        <Spinner label="Checking sign-in status..." />
+      </div>
+    );
+  }
+
+  if (!username) {
+    return (
+      <div style={{ padding: 24, maxWidth: 360 }}>
         <Title2>Web Resource Sync</Title2>
+        <Field
+          label="Tenant (optional)"
+          hint="Only needed if your Dataverse environment is in a different organization than your account's home tenant — e.g. a domain like contoso.onmicrosoft.com."
+          style={{ marginTop: 16 }}
+        >
+          <Input
+            value={tenant}
+            onChange={(_, data) => setTenant(data.value)}
+            placeholder="contoso.onmicrosoft.com"
+            disabled={signingIn}
+          />
+        </Field>
         <p>
-          <Button appearance="primary" onClick={() => instance.loginPopup({ scopes: [] })}>
-            Sign in
+          <Button appearance="primary" onClick={handleSignIn} disabled={signingIn}>
+            {signingIn ? "Waiting for browser sign-in..." : "Sign in"}
           </Button>
         </p>
+        {signingIn && (
+          <Text>A browser window has opened to sign in with your Microsoft account.</Text>
+        )}
+        {authError && <Text style={{ color: "red" }}>{authError}</Text>}
       </div>
     );
   }
@@ -32,8 +83,8 @@ function App() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Title2>Web Resource Sync</Title2>
         <div>
-          <Text>{accounts[0].username}</Text>{" "}
-          <Button appearance="subtle" onClick={() => instance.logoutPopup()}>
+          <Text>{username}</Text>{" "}
+          <Button appearance="subtle" onClick={handleSignOut}>
             Sign out
           </Button>
         </div>

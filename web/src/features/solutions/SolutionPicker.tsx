@@ -33,7 +33,7 @@ export function SolutionPicker({ orgApiUrl, selected, onSelect }: Props) {
     >
       {solutions.map((sol) => (
         <Option key={sol.solutionid} value={sol.solutionid}>
-          {sol.friendlyname + (sol.ismanaged ? " (managed)" : "")}
+          {sol.friendlyname}
         </Option>
       ))}
     </Dropdown>

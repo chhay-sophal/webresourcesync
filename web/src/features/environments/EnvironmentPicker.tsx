@@ -1,39 +1,83 @@
-import { Dropdown, Option, Spinner, Text } from "@fluentui/react-components";
+import { Button, Dropdown, Field, Input, Option, Spinner, Text } from "@fluentui/react-components";
 import { useEffect, useState } from "react";
-import { listEnvironments, type DataverseEnvironment } from "../../api/discovery";
+import { listEnvironments, type DataverseEnvironment } from "../../api/dataverse";
 
 interface Props {
   selected: DataverseEnvironment | null;
   onSelect: (environment: DataverseEnvironment) => void;
 }
 
+/** Accepts the Web API endpoint shown on a Dataverse environment's "Developer resources"
+ * page, with or without the trailing /api/data/v9.x/ path, and returns just the origin. */
+function normalizeApiUrl(input: string): string {
+  return input.trim().replace(/\/+$/, "").replace(/\/api\/data\/v[\d.]+$/i, "");
+}
+
 export function EnvironmentPicker({ selected, onSelect }: Props) {
   const [environments, setEnvironments] = useState<DataverseEnvironment[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [discoveryError, setDiscoveryError] = useState<string | null>(null);
+  const [manualUrl, setManualUrl] = useState("");
 
   useEffect(() => {
     listEnvironments()
       .then(setEnvironments)
-      .catch((err) => setError(err.message));
+      .catch((err) => setDiscoveryError(err.message));
   }, []);
 
-  if (error) return <Text style={{ color: "red" }}>{error}</Text>;
-  if (!environments) return <Spinner label="Loading environments..." />;
+  function connectManually() {
+    const apiUrl = normalizeApiUrl(manualUrl);
+    if (!apiUrl) return;
+    let host: string;
+    try {
+      host = new URL(apiUrl).hostname;
+    } catch {
+      host = apiUrl;
+    }
+    onSelect({ id: host, displayName: host, domainName: host, apiUrl, tenantId: "" });
+  }
 
   return (
-    <Dropdown
-      placeholder="Choose an environment"
-      value={selected?.friendlyName ?? ""}
-      onOptionSelect={(_, data) => {
-        const env = environments.find((e) => e.uniqueName === data.optionValue);
-        if (env) onSelect(env);
-      }}
-    >
-      {environments.map((env) => (
-        <Option key={env.uniqueName} value={env.uniqueName}>
-          {env.friendlyName}
-        </Option>
-      ))}
-    </Dropdown>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {!environments && !discoveryError && <Spinner label="Loading environments..." />}
+      {discoveryError && (
+        <Text style={{ color: "red" }}>Couldn't list environments: {discoveryError}</Text>
+      )}
+      {environments && environments.length === 0 && (
+        <Text>No environments found via discovery — connect directly below instead.</Text>
+      )}
+      {environments && environments.length > 0 && (
+        <Dropdown
+          placeholder="Choose an environment"
+          value={selected?.displayName ?? ""}
+          onOptionSelect={(_, data) => {
+            const env = environments.find((e) => e.id === data.optionValue);
+            if (env) onSelect(env);
+          }}
+        >
+          {environments.map((env) => (
+            <Option key={env.id} value={env.id}>
+              {env.displayName}
+            </Option>
+          ))}
+        </Dropdown>
+      )}
+
+      <Field
+        label="Or connect directly"
+        hint="Paste the Web API endpoint from the environment's Power Apps 'Developer resources' page."
+      >
+        <div style={{ display: "flex", gap: 8 }}>
+          <Input
+            style={{ flex: 1 }}
+            value={manualUrl}
+            onChange={(_, data) => setManualUrl(data.value)}
+            placeholder="https://yourorg.api.crm.dynamics.com/api/data/v9.2/"
+          />
+          <Button onClick={connectManually} disabled={!manualUrl.trim()}>
+            Connect
+          </Button>
+        </div>
+      </Field>
+    </div>
   );
 }

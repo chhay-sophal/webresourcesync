@@ -6,7 +6,9 @@ import { createServer } from "node:http";
 import { WebSocketServer } from "ws";
 import { fileWatcher, type FileEvent } from "./fileWatcher.js";
 import { readConfig } from "./linksStore.js";
+import { authRouter } from "./routes/auth.js";
 import { configRouter } from "./routes/config.js";
+import { dataverseRouter } from "./routes/dataverse.js";
 import { filesRouter } from "./routes/files.js";
 import { linksRouter } from "./routes/links.js";
 
@@ -21,6 +23,8 @@ app.use(express.json());
 app.use("/api/config", configRouter);
 app.use("/api/files", filesRouter);
 app.use("/api/links", linksRouter);
+app.use("/api/auth", authRouter);
+app.use("/api/dataverse", dataverseRouter);
 
 if (isProd) {
   const webDist = path.join(__dirname, "../../web/dist");
@@ -29,6 +33,10 @@ if (isProd) {
 }
 
 const httpServer = createServer(app);
+// Interactive sign-in can leave a request open for minutes while the user completes
+// the browser flow; disable Node's default request/headers timeouts for that.
+httpServer.requestTimeout = 0;
+httpServer.headersTimeout = 0;
 const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
 
 function broadcast(event: FileEvent) {
@@ -45,7 +53,7 @@ async function main() {
   if (config.watchedRoot) {
     await fileWatcher.setRoot(config.watchedRoot);
   }
-  httpServer.listen(PORT, () => {
+  httpServer.listen(PORT, "127.0.0.1", () => {
     console.log(`webresourcesync server listening on http://localhost:${PORT}`);
   });
 }

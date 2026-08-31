@@ -1,15 +1,12 @@
-import { getAccessToken } from "../auth/msalConfig";
+import { backendJson } from "./backend";
 
-const API_VERSION = "v9.2";
-
-/** Solution component type code for Web Resource records, per Dataverse's componenttype option set. */
-const WEBRESOURCE_COMPONENT_TYPE = 61;
-
-export const WEBRESOURCE_TYPES = {
-  HTML: 1,
-  CSS: 2,
-  JS: 3,
-} as const;
+export interface DataverseEnvironment {
+  id: string;
+  displayName: string;
+  domainName: string;
+  apiUrl: string;
+  tenantId: string;
+}
 
 export interface Solution {
   solutionid: string;
@@ -26,70 +23,37 @@ export interface WebResource {
   ismanaged: boolean;
 }
 
-async function callDataverse(
-  orgApiUrl: string,
-  path: string,
-  init: RequestInit = {}
-): Promise<Response> {
-  const token = await getAccessToken(orgApiUrl);
-  const res = await fetch(`${orgApiUrl}/api/data/${API_VERSION}/${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/json",
-      "OData-MaxVersion": "4.0",
-      "OData-Version": "4.0",
-      ...(init.body ? { "Content-Type": "application/json" } : {}),
-      ...init.headers,
-    },
-  });
-  if (!res.ok) {
-    throw new Error(`Dataverse request failed: ${res.status} ${await res.text()}`);
-  }
-  return res;
+export const WEBRESOURCE_TYPES = {
+  HTML: 1,
+  CSS: 2,
+  JS: 3,
+} as const;
+
+export function listEnvironments(): Promise<DataverseEnvironment[]> {
+  return backendJson<DataverseEnvironment[]>("/dataverse/environments");
 }
 
-export async function listSolutions(orgApiUrl: string): Promise<Solution[]> {
-  const res = await callDataverse(
-    orgApiUrl,
-    "solutions?$select=solutionid,uniquename,friendlyname,ismanaged" +
-      "&$filter=isvisible eq true and uniquename ne 'Default'"
-  );
-  const data = (await res.json()) as { value: Solution[] };
-  return data.value;
+export function listSolutions(orgApiUrl: string): Promise<Solution[]> {
+  return backendJson<Solution[]>(`/dataverse/solutions?orgApiUrl=${encodeURIComponent(orgApiUrl)}`);
 }
 
-export async function listWebResourcesForSolution(
+export function listWebResourcesForSolution(
   orgApiUrl: string,
   solutionId: string
 ): Promise<WebResource[]> {
-  const componentsRes = await callDataverse(
-    orgApiUrl,
-    `solutioncomponents?$select=objectid&$filter=_solutionid_value eq ${solutionId} and componenttype eq ${WEBRESOURCE_COMPONENT_TYPE}`
-  );
-  const components = (await componentsRes.json()) as { value: { objectid: string }[] };
-  const ids = components.value.map((c) => c.objectid);
-  if (ids.length === 0) return [];
-
-  const filter = ids.map((id) => `webresourceid eq ${id}`).join(" or ");
-  const resourcesRes = await callDataverse(
-    orgApiUrl,
-    `webresourceset?$select=webresourceid,name,displayname,webresourcetype,ismanaged&$filter=${filter}`
-  );
-  const data = (await resourcesRes.json()) as { value: WebResource[] };
-  return data.value;
+  const params = new URLSearchParams({ orgApiUrl, solutionId });
+  return backendJson<WebResource[]>(`/dataverse/webresources?${params}`);
 }
 
 export async function getWebResourceContent(
   orgApiUrl: string,
   webresourceId: string
 ): Promise<string> {
-  const res = await callDataverse(
-    orgApiUrl,
-    `webresourceset(${webresourceId})?$select=content`
+  const params = new URLSearchParams({ orgApiUrl });
+  const { content } = await backendJson<{ content: string }>(
+    `/dataverse/webresources/${webresourceId}/content?${params}`
   );
-  const data = (await res.json()) as { content: string };
-  return data.content;
+  return content;
 }
 
 export async function createWebResource(
@@ -97,15 +61,12 @@ export async function createWebResource(
   solutionUniqueName: string,
   resource: { name: string; displayname: string; webresourcetype: number; content: string }
 ): Promise<string> {
-  const res = await callDataverse(orgApiUrl, "webresourceset", {
-    method: "POST",
-    headers: { "MSCRM.SolutionUniqueName": solutionUniqueName },
-    body: JSON.stringify(resource),
-  });
-  const location = res.headers.get("OData-EntityId") ?? "";
-  const match = location.match(/\(([0-9a-fA-F-]+)\)/);
-  if (!match) throw new Error("Could not determine new web resource id from response");
-  return match[1];
+  const params = new URLSearchParams({ orgApiUrl, solutionUniqueName });
+  const { webresourceid } = await backendJson<{ webresourceid: string }>(
+    `/dataverse/webresources?${params}`,
+    { method: "POST", body: JSON.stringify(resource) }
+  );
+  return webresourceid;
 }
 
 export async function updateWebResourceContent(
@@ -113,24 +74,27 @@ export async function updateWebResourceContent(
   webresourceId: string,
   base64Content: string
 ): Promise<void> {
-  await callDataverse(orgApiUrl, `webresourceset(${webresourceId})`, {
+  const params = new URLSearchParams({ orgApiUrl });
+  await backendJson<void>(`/dataverse/webresources/${webresourceId}?${params}`, {
     method: "PATCH",
     body: JSON.stringify({ content: base64Content }),
   });
 }
 
 export async function deleteWebResource(orgApiUrl: string, webresourceId: string): Promise<void> {
-  await callDataverse(orgApiUrl, `webresourceset(${webresourceId})`, { method: "DELETE" });
+  const params = new URLSearchParams({ orgApiUrl });
+  await backendJson<void>(`/dataverse/webresources/${webresourceId}?${params}`, {
+    method: "DELETE",
+  });
 }
 
 export async function publishWebResources(
   orgApiUrl: string,
   webresourceIds: string[]
 ): Promise<void> {
-  const inner = webresourceIds.map((id) => `<webresource>{${id}}</webresource>`).join("");
-  const parameterXml = `<importexportxml><webresources>${inner}</webresources></importexportxml>`;
-  await callDataverse(orgApiUrl, "PublishXml", {
+  const params = new URLSearchParams({ orgApiUrl });
+  await backendJson<void>(`/dataverse/webresources/publish?${params}`, {
     method: "POST",
-    body: JSON.stringify({ ParameterXml: parameterXml }),
+    body: JSON.stringify({ ids: webresourceIds }),
   });
 }
