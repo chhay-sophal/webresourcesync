@@ -10,15 +10,26 @@ const PROMPT = "Select the folder containing your web resource files";
  * the user cancelled. */
 export async function pickFolderNative(): Promise<string | null> {
   if (process.platform === "win32") {
+    // FolderBrowserDialog's modern-look auto-upgrade is unreliable when hosted from an
+    // ad-hoc PowerShell script (no real WinForms app/manifest), and falls back to the old
+    // tree-only "Browse For Folder" dialog. OpenFileDialog is always the modern
+    // Explorer-style common dialog, so this well-known trick configures it to pick a
+    // folder instead of a file: a fake filename placeholder that survives navigation, a
+    // filter matching no real files (folders are never filtered out), and validation
+    // relaxed since "Select Folder" isn't an actual file.
     const script = `
-Add-Type -AssemblyName System.Windows.Forms
-$dialog = New-Object System.Windows.Forms.FolderBrowserDialog
-$dialog.Description = "${PROMPT}"
-$dialog.ShowNewFolderButton = $false
-if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-  Write-Output $dialog.SelectedPath
-}
-`;
+      Add-Type -AssemblyName System.Windows.Forms
+      $dialog = New-Object System.Windows.Forms.OpenFileDialog
+      $dialog.Title = "${PROMPT}"
+      $dialog.ValidateNames = $false
+      $dialog.CheckFileExists = $false
+      $dialog.CheckPathExists = $true
+      $dialog.FileName = "Select Folder"
+      $dialog.Filter = "Folders|\`n"
+      if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+        Write-Output ([System.IO.Path]::GetDirectoryName($dialog.FileName))
+      }
+    `;
     const { stdout } = await execFileAsync("powershell.exe", [
       "-NoProfile",
       "-NonInteractive",
