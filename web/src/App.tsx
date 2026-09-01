@@ -49,6 +49,7 @@ function App({ isDark, onToggleTheme }: Props) {
   const [solution, setSolution] = usePersistedState<Solution | null>("wrs.solution", null);
   const [hasActiveWebResourceFilters, setHasActiveWebResourceFilters] = useState(false);
   const [modifiedCount, setModifiedCount] = useState(0);
+  const [selectedCount, setSelectedCount] = useState(0);
   const [publishingAll, setPublishingAll] = useState(false);
   const [folderBarOpen, setFolderBarOpen] = useState(false);
   const [environmentBarOpen, setEnvironmentBarOpen] = useState(false);
@@ -221,11 +222,21 @@ function App({ isDark, onToggleTheme }: Props) {
             icon={<DocumentBulletListRegular />}
             title="Web resources"
             action={
-              (modifiedCount > 0 || hasActiveWebResourceFilters) && (
+              (selectedCount > 0 || modifiedCount > 0 || hasActiveWebResourceFilters) && (
                 <div className="flex gap-2">
-                  {modifiedCount > 0 && (
+                  {selectedCount > 0 && (
                     <Button
                       appearance="primary"
+                      icon={<CloudArrowUpRegular />}
+                      onClick={() => webResourceListRef.current?.publishSelected()}
+                      disabled={publishingAll}
+                    >
+                      {publishingAll ? "Publishing..." : `Publish Selected (${selectedCount})`}
+                    </Button>
+                  )}
+                  {modifiedCount > 0 && (
+                    <Button
+                      appearance={selectedCount > 0 ? "secondary" : "primary"}
                       icon={<CloudArrowUpRegular />}
                       onClick={() => webResourceListRef.current?.publishAll()}
                       disabled={publishingAll}
@@ -256,6 +267,7 @@ function App({ isDark, onToggleTheme }: Props) {
               onFilePublished={localFiles.clearModified}
               onActiveFilterOrSortChange={setHasActiveWebResourceFilters}
               onModifiedCountChange={setModifiedCount}
+              onSelectedCountChange={setSelectedCount}
               onPublishingAllChange={setPublishingAll}
             />
           </SectionCard>

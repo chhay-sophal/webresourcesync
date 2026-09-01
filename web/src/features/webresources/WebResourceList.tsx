@@ -83,6 +83,7 @@ function sortValue(r: WebResource, column: SortColumn): string {
 export interface WebResourceListHandle {
   clearAllFiltersAndSort: () => void;
   publishAll: () => Promise<void>;
+  publishSelected: () => Promise<void>;
 }
 
 interface Props {
@@ -95,6 +96,7 @@ interface Props {
   onFilePublished: (localPath: string) => void;
   onActiveFilterOrSortChange?: (active: boolean) => void;
   onModifiedCountChange?: (count: number) => void;
+  onSelectedCountChange?: (count: number) => void;
   onPublishingAllChange?: (publishing: boolean) => void;
   ref?: Ref<WebResourceListHandle>;
 }
@@ -109,6 +111,7 @@ export function WebResourceList({
   onFilePublished,
   onActiveFilterOrSortChange,
   onModifiedCountChange,
+  onSelectedCountChange,
   onPublishingAllChange,
   ref,
 }: Props) {
@@ -119,6 +122,7 @@ export function WebResourceList({
   const [links, setLinks] = useState<ResourceLink[]>([]);
   const [modifiedStatus, setModifiedStatus] = useState<Map<string, boolean>>(new Map());
   const [publishAllError, setPublishAllError] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const refreshLinks = useCallback(() => {
     listLinks().then(setLinks);
@@ -170,38 +174,50 @@ export function WebResourceList({
     onModifiedCountChange?.(modifiedCount);
   }, [modifiedCount, onModifiedCountChange]);
 
+  useEffect(() => {
+    onSelectedCountChange?.(selectedIds.size);
+  }, [selectedIds, onSelectedCountChange]);
+
   function handleRowPublished(webresourceId: string, localPath: string) {
     setModifiedStatus((prev) => new Map(prev).set(webresourceId, false));
     onFilePublished(localPath);
   }
 
-  async function publishAll() {
-    const toPublish = links.filter((l) => modifiedStatus.get(l.webresourceId));
-    if (toPublish.length === 0) return;
+  /** Updates local-linked content for the given resources (in parallel) and publishes
+   * everything that either updated successfully or has no local link to update from. */
+  async function publishResources(webresourceIds: string[]) {
+    if (webresourceIds.length === 0) return;
+    const idSet = new Set(webresourceIds);
+    const linked = links.filter((l) => idSet.has(l.webresourceId));
     onPublishingAllChange?.(true);
     setPublishAllError(null);
     try {
       const results = await Promise.allSettled(
-        toPublish.map(async (link) => {
+        linked.map(async (link) => {
           const content = await getLocalFileContent(link.localPath);
           await updateWebResourceContent(orgApiUrl, link.webresourceId, utf8ToBase64(content));
           return link;
         })
       );
-      const succeeded: ResourceLink[] = [];
+      const failedIds = new Set<string>();
       const failedNames: string[] = [];
+      const succeededLinks: ResourceLink[] = [];
       results.forEach((result, index) => {
-        if (result.status === "fulfilled") succeeded.push(result.value);
-        else failedNames.push(toPublish[index].webresourceName);
+        if (result.status === "fulfilled") succeededLinks.push(result.value);
+        else {
+          failedIds.add(linked[index].webresourceId);
+          failedNames.push(linked[index].webresourceName);
+        }
       });
-      if (succeeded.length > 0) {
-        await publishWebResources(orgApiUrl, succeeded.map((l) => l.webresourceId));
+      const toPublish = webresourceIds.filter((id) => !failedIds.has(id));
+      if (toPublish.length > 0) {
+        await publishWebResources(orgApiUrl, toPublish);
         setModifiedStatus((prev) => {
           const next = new Map(prev);
-          for (const l of succeeded) next.set(l.webresourceId, false);
+          for (const id of toPublish) next.set(id, false);
           return next;
         });
-        succeeded.forEach((l) => onFilePublished(l.localPath));
+        succeededLinks.forEach((l) => onFilePublished(l.localPath));
       }
       if (failedNames.length > 0) {
         setPublishAllError(`Failed to update: ${failedNames.join(", ")}`);
@@ -211,6 +227,16 @@ export function WebResourceList({
     } finally {
       onPublishingAllChange?.(false);
     }
+  }
+
+  async function publishAll() {
+    const toPublish = links.filter((l) => modifiedStatus.get(l.webresourceId)).map((l) => l.webresourceId);
+    await publishResources(toPublish);
+  }
+
+  async function publishSelected() {
+    await publishResources([...selectedIds]);
+    setSelectedIds(new Set());
   }
 
   const hasActiveFilterOrSort =
@@ -230,6 +256,7 @@ export function WebResourceList({
       setSort(null);
     },
     publishAll,
+    publishSelected,
   }));
 
   useEffect(() => {
@@ -238,6 +265,7 @@ export function WebResourceList({
     setSort(null);
     setModifiedStatus(new Map());
     setPublishAllError(null);
+    setSelectedIds(new Set());
     listWebResourcesForSolution(orgApiUrl, solutionId)
       .then(setResources)
       .catch((err) => setError(err.message));
@@ -281,6 +309,31 @@ export function WebResourceList({
     });
   }
 
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const allDisplayedSelected =
+    displayedResources.length > 0 && displayedResources.every((r) => selectedIds.has(r.webresourceid));
+  const someDisplayedSelected = displayedResources.some((r) => selectedIds.has(r.webresourceid));
+
+  function toggleSelectAllDisplayed() {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allDisplayedSelected) {
+        displayedResources.forEach((r) => next.delete(r.webresourceid));
+      } else {
+        displayedResources.forEach((r) => next.add(r.webresourceid));
+      }
+      return next;
+    });
+  }
+
   if (error) return <Text style={{ color: tokens.colorPaletteRedForeground1 }}>{error}</Text>;
   if (!resources) return <Spinner label="Loading web resources..." />;
   if (resources.length === 0) return <Text>No web resources found in this solution.</Text>;
@@ -293,10 +346,17 @@ export function WebResourceList({
       </Text>
     )}
     <div className="overflow-x-auto">
-    <Table className="w-full table-fixed min-w-[760px]">
+    <Table className="w-full table-fixed min-w-[800px]">
       <TableHeader>
         <TableRow>
-          <TableHeaderCell className="w-1/4">
+          <TableHeaderCell className="w-10">
+            <Checkbox
+              checked={allDisplayedSelected ? true : someDisplayedSelected ? "mixed" : false}
+              onChange={toggleSelectAllDisplayed}
+              aria-label="Select all web resources"
+            />
+          </TableHeaderCell>
+          <TableHeaderCell className="w-1/5">
             <HeaderContent label="Name">
               <ColumnHeaderMenu
                 active={sortDirectionFor("name") !== null || filters.name !== ""}
@@ -316,7 +376,7 @@ export function WebResourceList({
               </ColumnHeaderMenu>
             </HeaderContent>
           </TableHeaderCell>
-          <TableHeaderCell className="w-1/4">
+          <TableHeaderCell className="w-1/5">
             <HeaderContent label="Display name">
               <ColumnHeaderMenu
                 active={sortDirectionFor("displayname") !== null || filters.displayname !== ""}
@@ -362,7 +422,7 @@ export function WebResourceList({
               </ColumnHeaderMenu>
             </HeaderContent>
           </TableHeaderCell>
-          <TableHeaderCell className="w-[7%]">
+          <TableHeaderCell className="w-[8%]">
             <HeaderContent label="Managed">
               <ColumnHeaderMenu
                 active={sortDirectionFor("managed") !== null || filters.managed !== "all"}
@@ -384,14 +444,22 @@ export function WebResourceList({
               </ColumnHeaderMenu>
             </HeaderContent>
           </TableHeaderCell>
-          <TableHeaderCell className="w-1/3">Local file</TableHeaderCell>
+          <TableHeaderCell>Local file</TableHeaderCell>
         </TableRow>
       </TableHeader>
       <TableBody>
         {displayedResources.map((r) => {
           const link = links.find((l) => l.webresourceId === r.webresourceid);
+          const isSelected = selectedIds.has(r.webresourceid);
           return (
-            <TableRow key={r.webresourceid}>
+            <TableRow key={r.webresourceid} appearance={isSelected ? "brand" : "none"}>
+              <TableCell>
+                <Checkbox
+                  checked={isSelected}
+                  onChange={() => toggleSelected(r.webresourceid)}
+                  aria-label={`Select ${r.name}`}
+                />
+              </TableCell>
               <TableCell>
                 <TableCellLayout truncate title={r.name}>
                   {r.name}
@@ -429,7 +497,7 @@ export function WebResourceList({
         })}
         {displayedResources.length === 0 && (
           <TableRow>
-            <TableCell colSpan={5}>
+            <TableCell colSpan={6}>
               <Text>No web resources match the current filters.</Text>
             </TableCell>
           </TableRow>
