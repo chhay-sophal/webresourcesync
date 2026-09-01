@@ -23,6 +23,13 @@ export interface WebResource {
   ismanaged: boolean;
 }
 
+export interface WebResourceDetails extends WebResource {
+  description: string | null;
+  languagecode: number | null;
+  createdon: string | null;
+  modifiedon: string | null;
+}
+
 export const WEBRESOURCE_TYPES = {
   HTML: 1,
   CSS: 2,
@@ -43,6 +50,14 @@ export function listWebResourcesForSolution(
 ): Promise<WebResource[]> {
   const params = new URLSearchParams({ orgApiUrl, solutionId });
   return backendJson<WebResource[]>(`/dataverse/webresources?${params}`);
+}
+
+export function getWebResourceDetails(
+  orgApiUrl: string,
+  webresourceId: string
+): Promise<WebResourceDetails> {
+  const params = new URLSearchParams({ orgApiUrl });
+  return backendJson<WebResourceDetails>(`/dataverse/webresources/${webresourceId}/details?${params}`);
 }
 
 export async function getWebResourceContent(

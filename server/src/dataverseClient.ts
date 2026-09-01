@@ -73,6 +73,13 @@ export interface WebResource {
   ismanaged: boolean;
 }
 
+export interface WebResourceDetails extends WebResource {
+  description: string | null;
+  languagecode: number | null;
+  createdon: string | null;
+  modifiedon: string | null;
+}
+
 async function callDataverse(
   orgApiUrl: string,
   path: string,
@@ -125,6 +132,18 @@ export async function listWebResourcesForSolution(
   );
   const data = (await resourcesRes.json()) as { value: WebResource[] };
   return data.value;
+}
+
+export async function getWebResourceDetails(
+  orgApiUrl: string,
+  webresourceId: string
+): Promise<WebResourceDetails> {
+  const res = await callDataverse(
+    orgApiUrl,
+    `webresourceset(${webresourceId})?$select=webresourceid,name,displayname,description,` +
+      "webresourcetype,ismanaged,languagecode,createdon,modifiedon"
+  );
+  return (await res.json()) as WebResourceDetails;
 }
 
 export async function getWebResourceContent(

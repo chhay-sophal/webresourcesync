@@ -1,4 +1,5 @@
 import {
+  Button,
   Checkbox,
   Input,
   Radio,
@@ -14,6 +15,7 @@ import {
   Text,
   tokens,
 } from "@fluentui/react-components";
+import { InfoRegular } from "@fluentui/react-icons";
 import { useCallback, useEffect, useImperativeHandle, useMemo, useState, type ReactNode, type Ref } from "react";
 import {
   getWebResourceContent,
@@ -26,20 +28,8 @@ import { getLocalFileContent, listLinks, type LocalFile, type ResourceLink } fro
 import { base64ToUtf8, utf8ToBase64 } from "../../lib/base64";
 import { ColumnHeaderMenu, type SortDirection } from "./ColumnHeaderMenu";
 import { LocalFileLink } from "./LocalFileLink";
-
-const TYPE_LABELS: Record<number, string> = {
-  1: "HTML",
-  2: "CSS",
-  3: "JavaScript",
-  4: "XML",
-  5: "PNG",
-  6: "JPG",
-  7: "GIF",
-  9: "XSL",
-  10: "ICO",
-  11: "SVG",
-  12: "RESX",
-};
+import { WebResourceDetailsDialog } from "./WebResourceDetailsDialog";
+import { TYPE_LABELS } from "./webResourceTypes";
 
 type ManagedFilter = "all" | "managed" | "unmanaged";
 type SortColumn = "name" | "displayname" | "type" | "managed";
@@ -123,6 +113,7 @@ export function WebResourceList({
   const [modifiedStatus, setModifiedStatus] = useState<Map<string, boolean>>(new Map());
   const [publishAllError, setPublishAllError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [detailsId, setDetailsId] = useState<string | null>(null);
 
   const refreshLinks = useCallback(() => {
     listLinks().then(setLinks);
@@ -461,9 +452,20 @@ export function WebResourceList({
                 />
               </TableCell>
               <TableCell>
-                <TableCellLayout truncate title={r.name}>
-                  {r.name}
-                </TableCellLayout>
+                <div className="flex min-w-0 items-center justify-between gap-1">
+                  <TableCellLayout truncate title={r.name} className="min-w-0 flex-1">
+                    {r.name}
+                  </TableCellLayout>
+                  <Button
+                    shape="circular"
+                    appearance="subtle"
+                    size="small"
+                    icon={<InfoRegular />}
+                    onClick={() => setDetailsId(r.webresourceid)}
+                    aria-label={`View details for ${r.name}`}
+                    className="shrink-0"
+                  />
+                </div>
               </TableCell>
               <TableCell>
                 <TableCellLayout truncate title={r.displayname}>
@@ -505,6 +507,12 @@ export function WebResourceList({
       </TableBody>
     </Table>
     </div>
+    <WebResourceDetailsDialog
+      orgApiUrl={orgApiUrl}
+      webresourceId={detailsId}
+      linkedPath={links.find((l) => l.webresourceId === detailsId)?.localPath}
+      onClose={() => setDetailsId(null)}
+    />
     </div>
   );
 }

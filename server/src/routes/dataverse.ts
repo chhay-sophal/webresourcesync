@@ -3,6 +3,7 @@ import {
   createWebResource,
   deleteWebResource,
   getWebResourceContent,
+  getWebResourceDetails,
   listEnvironments,
   listSolutions,
   listWebResourcesForSolution,
@@ -51,6 +52,14 @@ dataverseRouter.get(
     const orgApiUrl = requireQueryParam(req, "orgApiUrl");
     const solutionId = requireQueryParam(req, "solutionId");
     res.json(await listWebResourcesForSolution(orgApiUrl, solutionId));
+  })
+);
+
+dataverseRouter.get(
+  "/webresources/:id/details",
+  handleErrors(async (req, res) => {
+    const orgApiUrl = requireQueryParam(req, "orgApiUrl");
+    res.json(await getWebResourceDetails(orgApiUrl, req.params.id));
   })
 );
 
