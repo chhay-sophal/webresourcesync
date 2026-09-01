@@ -15,8 +15,15 @@ import {
   tokens,
 } from "@fluentui/react-components";
 import { useCallback, useEffect, useImperativeHandle, useMemo, useState, type ReactNode, type Ref } from "react";
-import { listWebResourcesForSolution, type WebResource } from "../../api/dataverse";
-import { listLinks, type LocalFile, type ResourceLink } from "../../api/local";
+import {
+  getWebResourceContent,
+  listWebResourcesForSolution,
+  publishWebResources,
+  updateWebResourceContent,
+  type WebResource,
+} from "../../api/dataverse";
+import { getLocalFileContent, listLinks, type LocalFile, type ResourceLink } from "../../api/local";
+import { base64ToUtf8, utf8ToBase64 } from "../../lib/base64";
 import { ColumnHeaderMenu, type SortDirection } from "./ColumnHeaderMenu";
 import { LocalFileLink } from "./LocalFileLink";
 
@@ -75,6 +82,7 @@ function sortValue(r: WebResource, column: SortColumn): string {
 
 export interface WebResourceListHandle {
   clearAllFiltersAndSort: () => void;
+  publishAll: () => Promise<void>;
 }
 
 interface Props {
@@ -86,6 +94,8 @@ interface Props {
   modifiedPaths: Set<string>;
   onFilePublished: (localPath: string) => void;
   onActiveFilterOrSortChange?: (active: boolean) => void;
+  onModifiedCountChange?: (count: number) => void;
+  onPublishingAllChange?: (publishing: boolean) => void;
   ref?: Ref<WebResourceListHandle>;
 }
 
@@ -98,6 +108,8 @@ export function WebResourceList({
   modifiedPaths,
   onFilePublished,
   onActiveFilterOrSortChange,
+  onModifiedCountChange,
+  onPublishingAllChange,
   ref,
 }: Props) {
   const [resources, setResources] = useState<WebResource[] | null>(null);
@@ -105,6 +117,8 @@ export function WebResourceList({
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [sort, setSort] = useState<{ column: SortColumn; direction: "asc" | "desc" } | null>(null);
   const [links, setLinks] = useState<ResourceLink[]>([]);
+  const [modifiedStatus, setModifiedStatus] = useState<Map<string, boolean>>(new Map());
+  const [publishAllError, setPublishAllError] = useState<string | null>(null);
 
   const refreshLinks = useCallback(() => {
     listLinks().then(setLinks);
@@ -113,6 +127,91 @@ export function WebResourceList({
   useEffect(() => {
     refreshLinks();
   }, [refreshLinks, solutionId]);
+
+  const checkOneModified = useCallback(
+    async (link: ResourceLink) => {
+      try {
+        const [localContent, remoteBase64] = await Promise.all([
+          getLocalFileContent(link.localPath),
+          getWebResourceContent(orgApiUrl, link.webresourceId),
+        ]);
+        const modified = localContent !== base64ToUtf8(remoteBase64);
+        setModifiedStatus((prev) => new Map(prev).set(link.webresourceId, modified));
+      } catch {
+        // Transient fetch error — leave the previous known state alone rather than guess.
+      }
+    },
+    [orgApiUrl]
+  );
+
+  // Full check whenever the linked-files list changes (initial load, solution switch, or a
+  // link was just created/removed).
+  useEffect(() => {
+    links.forEach((link) => {
+      checkOneModified(link);
+    });
+  }, [links, checkOneModified]);
+
+  // Incremental re-check when a watched local file changes.
+  useEffect(() => {
+    for (const link of links) {
+      if (modifiedPaths.has(link.localPath)) {
+        checkOneModified(link);
+      }
+    }
+  }, [modifiedPaths, links, checkOneModified]);
+
+  const modifiedCount = useMemo(
+    () => [...modifiedStatus.values()].filter(Boolean).length,
+    [modifiedStatus]
+  );
+
+  useEffect(() => {
+    onModifiedCountChange?.(modifiedCount);
+  }, [modifiedCount, onModifiedCountChange]);
+
+  function handleRowPublished(webresourceId: string, localPath: string) {
+    setModifiedStatus((prev) => new Map(prev).set(webresourceId, false));
+    onFilePublished(localPath);
+  }
+
+  async function publishAll() {
+    const toPublish = links.filter((l) => modifiedStatus.get(l.webresourceId));
+    if (toPublish.length === 0) return;
+    onPublishingAllChange?.(true);
+    setPublishAllError(null);
+    try {
+      const results = await Promise.allSettled(
+        toPublish.map(async (link) => {
+          const content = await getLocalFileContent(link.localPath);
+          await updateWebResourceContent(orgApiUrl, link.webresourceId, utf8ToBase64(content));
+          return link;
+        })
+      );
+      const succeeded: ResourceLink[] = [];
+      const failedNames: string[] = [];
+      results.forEach((result, index) => {
+        if (result.status === "fulfilled") succeeded.push(result.value);
+        else failedNames.push(toPublish[index].webresourceName);
+      });
+      if (succeeded.length > 0) {
+        await publishWebResources(orgApiUrl, succeeded.map((l) => l.webresourceId));
+        setModifiedStatus((prev) => {
+          const next = new Map(prev);
+          for (const l of succeeded) next.set(l.webresourceId, false);
+          return next;
+        });
+        succeeded.forEach((l) => onFilePublished(l.localPath));
+      }
+      if (failedNames.length > 0) {
+        setPublishAllError(`Failed to update: ${failedNames.join(", ")}`);
+      }
+    } catch (err) {
+      setPublishAllError((err as Error).message);
+    } finally {
+      onPublishingAllChange?.(false);
+    }
+  }
 
   const hasActiveFilterOrSort =
     sort !== null ||
@@ -130,12 +229,15 @@ export function WebResourceList({
       setFilters(EMPTY_FILTERS);
       setSort(null);
     },
+    publishAll,
   }));
 
   useEffect(() => {
     setResources(null);
     setFilters(EMPTY_FILTERS);
     setSort(null);
+    setModifiedStatus(new Map());
+    setPublishAllError(null);
     listWebResourcesForSolution(orgApiUrl, solutionId)
       .then(setResources)
       .catch((err) => setError(err.message));
@@ -184,6 +286,12 @@ export function WebResourceList({
   if (resources.length === 0) return <Text>No web resources found in this solution.</Text>;
 
   return (
+    <div>
+    {publishAllError && (
+      <Text className="mb-2 block" style={{ color: tokens.colorPaletteRedForeground1 }}>
+        {publishAllError}
+      </Text>
+    )}
     <div className="overflow-x-auto">
     <Table className="w-full table-fixed min-w-[760px]">
       <TableHeader>
@@ -311,9 +419,9 @@ export function WebResourceList({
                   webresourceName={r.name}
                   localFiles={localFiles}
                   link={link}
-                  hasPendingChangeEvent={!!link && modifiedPaths.has(link.localPath)}
+                  isModified={!!link && (modifiedStatus.get(r.webresourceid) ?? false)}
                   onLinksChanged={refreshLinks}
-                  onPublished={onFilePublished}
+                  onPublished={handleRowPublished}
                 />
               </TableCell>
             </TableRow>
@@ -328,6 +436,7 @@ export function WebResourceList({
         )}
       </TableBody>
     </Table>
+    </div>
     </div>
   );
 }

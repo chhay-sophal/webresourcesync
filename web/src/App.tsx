@@ -11,6 +11,7 @@ import {
 } from "@fluentui/react-components";
 import {
   AppsListDetailRegular,
+  CloudArrowUpRegular,
   CloudRegular,
   DocumentBulletListRegular,
   FolderRegular,
@@ -47,6 +48,8 @@ function App({ isDark, onToggleTheme }: Props) {
   );
   const [solution, setSolution] = usePersistedState<Solution | null>("wrs.solution", null);
   const [hasActiveWebResourceFilters, setHasActiveWebResourceFilters] = useState(false);
+  const [modifiedCount, setModifiedCount] = useState(0);
+  const [publishingAll, setPublishingAll] = useState(false);
   const [folderBarOpen, setFolderBarOpen] = useState(false);
   const [environmentBarOpen, setEnvironmentBarOpen] = useState(false);
   const [solutionBarOpen, setSolutionBarOpen] = useState(false);
@@ -218,13 +221,27 @@ function App({ isDark, onToggleTheme }: Props) {
             icon={<DocumentBulletListRegular />}
             title="Web resources"
             action={
-              hasActiveWebResourceFilters && (
-                <Button
-                  appearance="subtle"
-                  onClick={() => webResourceListRef.current?.clearAllFiltersAndSort()}
-                >
-                  Clear filters
-                </Button>
+              (modifiedCount > 0 || hasActiveWebResourceFilters) && (
+                <div className="flex gap-2">
+                  {modifiedCount > 0 && (
+                    <Button
+                      appearance="primary"
+                      icon={<CloudArrowUpRegular />}
+                      onClick={() => webResourceListRef.current?.publishAll()}
+                      disabled={publishingAll}
+                    >
+                      {publishingAll ? "Publishing..." : `Publish All (${modifiedCount})`}
+                    </Button>
+                  )}
+                  {hasActiveWebResourceFilters && (
+                    <Button
+                      appearance="subtle"
+                      onClick={() => webResourceListRef.current?.clearAllFiltersAndSort()}
+                    >
+                      Clear filters
+                    </Button>
+                  )}
+                </div>
               )
             }
           >
@@ -238,6 +255,8 @@ function App({ isDark, onToggleTheme }: Props) {
               modifiedPaths={localFiles.modifiedPaths}
               onFilePublished={localFiles.clearModified}
               onActiveFilterOrSortChange={setHasActiveWebResourceFilters}
+              onModifiedCountChange={setModifiedCount}
+              onPublishingAllChange={setPublishingAll}
             />
           </SectionCard>
         ) : (
