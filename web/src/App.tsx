@@ -10,6 +10,7 @@ import {
   tokens,
 } from "@fluentui/react-components";
 import {
+  AddRegular,
   AppsListDetailRegular,
   CloudArrowUpRegular,
   CloudRegular,
@@ -222,38 +223,43 @@ function App({ isDark, onToggleTheme }: Props) {
             icon={<DocumentBulletListRegular />}
             title="Web resources"
             action={
-              (selectedCount > 0 || modifiedCount > 0 || hasActiveWebResourceFilters) && (
-                <div className="flex gap-2">
-                  {selectedCount > 0 && (
-                    <Button
-                      appearance="primary"
-                      icon={<CloudArrowUpRegular />}
-                      onClick={() => webResourceListRef.current?.publishSelected()}
-                      disabled={publishingAll}
-                    >
-                      {publishingAll ? "Publishing..." : `Publish Selected (${selectedCount})`}
-                    </Button>
-                  )}
-                  {modifiedCount > 0 && (
-                    <Button
-                      appearance={selectedCount > 0 ? "secondary" : "primary"}
-                      icon={<CloudArrowUpRegular />}
-                      onClick={() => webResourceListRef.current?.publishAll()}
-                      disabled={publishingAll}
-                    >
-                      {publishingAll ? "Publishing..." : `Publish All (${modifiedCount})`}
-                    </Button>
-                  )}
-                  {hasActiveWebResourceFilters && (
-                    <Button
-                      appearance="subtle"
-                      onClick={() => webResourceListRef.current?.clearAllFiltersAndSort()}
-                    >
-                      Clear filters
-                    </Button>
-                  )}
-                </div>
-              )
+              <div className="flex gap-2">
+                {selectedCount > 0 && (
+                  <Button
+                    appearance="primary"
+                    icon={<CloudArrowUpRegular />}
+                    onClick={() => webResourceListRef.current?.publishSelected()}
+                    disabled={publishingAll}
+                  >
+                    {publishingAll ? "Publishing..." : `Publish Selected (${selectedCount})`}
+                  </Button>
+                )}
+                {modifiedCount > 0 && (
+                  <Button
+                    appearance={selectedCount > 0 ? "secondary" : "primary"}
+                    icon={<CloudArrowUpRegular />}
+                    onClick={() => webResourceListRef.current?.publishAll()}
+                    disabled={publishingAll}
+                  >
+                    {publishingAll ? "Publishing..." : `Publish All (${modifiedCount})`}
+                  </Button>
+                )}
+                {hasActiveWebResourceFilters && (
+                  <Button
+                    appearance="subtle"
+                    onClick={() => webResourceListRef.current?.clearAllFiltersAndSort()}
+                  >
+                    Clear filters
+                  </Button>
+                )}
+                <Button
+                  appearance="secondary"
+                  icon={<AddRegular />}
+                  onClick={() => webResourceListRef.current?.openCreateDialog()}
+                >
+                  Create
+                </Button>
+              </div>
             }
           >
             <WebResourceList

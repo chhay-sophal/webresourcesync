@@ -27,6 +27,7 @@ import {
 import { getLocalFileContent, listLinks, type LocalFile, type ResourceLink } from "../../api/local";
 import { base64ToUtf8, utf8ToBase64 } from "../../lib/base64";
 import { ColumnHeaderMenu, type SortDirection } from "./ColumnHeaderMenu";
+import { CreateWebResourceDialog } from "./CreateWebResourceDialog";
 import { LocalFileLink } from "./LocalFileLink";
 import { WebResourceDetailsDialog } from "./WebResourceDetailsDialog";
 import { TYPE_LABELS } from "./webResourceTypes";
@@ -74,6 +75,7 @@ export interface WebResourceListHandle {
   clearAllFiltersAndSort: () => void;
   publishAll: () => Promise<void>;
   publishSelected: () => Promise<void>;
+  openCreateDialog: () => void;
 }
 
 interface Props {
@@ -114,6 +116,7 @@ export function WebResourceList({
   const [publishAllError, setPublishAllError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [detailsId, setDetailsId] = useState<string | null>(null);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const refreshLinks = useCallback(() => {
     listLinks().then(setLinks);
@@ -248,7 +251,14 @@ export function WebResourceList({
     },
     publishAll,
     publishSelected,
+    openCreateDialog: () => setCreateDialogOpen(true),
   }));
+
+  const refreshResources = useCallback(() => {
+    listWebResourcesForSolution(orgApiUrl, solutionId)
+      .then(setResources)
+      .catch((err) => setError(err.message));
+  }, [orgApiUrl, solutionId]);
 
   useEffect(() => {
     setResources(null);
@@ -257,10 +267,13 @@ export function WebResourceList({
     setModifiedStatus(new Map());
     setPublishAllError(null);
     setSelectedIds(new Set());
-    listWebResourcesForSolution(orgApiUrl, solutionId)
-      .then(setResources)
-      .catch((err) => setError(err.message));
-  }, [orgApiUrl, solutionId]);
+    refreshResources();
+  }, [orgApiUrl, solutionId, refreshResources]);
+
+  function handleCreated() {
+    setCreateDialogOpen(false);
+    refreshResources();
+  }
 
   const availableTypes = useMemo(() => {
     const seen = new Map<number, string>();
@@ -325,9 +338,37 @@ export function WebResourceList({
     });
   }
 
-  if (error) return <Text style={{ color: tokens.colorPaletteRedForeground1 }}>{error}</Text>;
-  if (!resources) return <Spinner label="Loading web resources..." />;
-  if (resources.length === 0) return <Text>No web resources found in this solution.</Text>;
+  const createDialog = (
+    <CreateWebResourceDialog
+      orgApiUrl={orgApiUrl}
+      solutionUniqueName={solutionUniqueName}
+      open={createDialogOpen}
+      onClose={() => setCreateDialogOpen(false)}
+      onCreated={handleCreated}
+    />
+  );
+
+  if (error)
+    return (
+      <>
+        <Text style={{ color: tokens.colorPaletteRedForeground1 }}>{error}</Text>
+        {createDialog}
+      </>
+    );
+  if (!resources)
+    return (
+      <>
+        <Spinner label="Loading web resources..." />
+        {createDialog}
+      </>
+    );
+  if (resources.length === 0)
+    return (
+      <>
+        <Text>No web resources found in this solution.</Text>
+        {createDialog}
+      </>
+    );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -515,6 +556,7 @@ export function WebResourceList({
       linkedPath={links.find((l) => l.webresourceId === detailsId)?.localPath}
       onClose={() => setDetailsId(null)}
     />
+    {createDialog}
     </div>
   );
 }
