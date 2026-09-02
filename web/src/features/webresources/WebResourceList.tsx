@@ -76,6 +76,7 @@ export interface WebResourceListHandle {
   publishAll: () => Promise<void>;
   publishSelected: () => Promise<void>;
   openCreateDialog: () => void;
+  refreshAll: () => Promise<void>;
 }
 
 interface Props {
@@ -90,6 +91,7 @@ interface Props {
   onModifiedCountChange?: (count: number) => void;
   onSelectedCountChange?: (count: number) => void;
   onPublishingAllChange?: (publishing: boolean) => void;
+  onRefreshingChange?: (refreshing: boolean) => void;
   ref?: Ref<WebResourceListHandle>;
 }
 
@@ -105,6 +107,7 @@ export function WebResourceList({
   onModifiedCountChange,
   onSelectedCountChange,
   onPublishingAllChange,
+  onRefreshingChange,
   ref,
 }: Props) {
   const [resources, setResources] = useState<WebResource[] | null>(null);
@@ -252,10 +255,11 @@ export function WebResourceList({
     publishAll,
     publishSelected,
     openCreateDialog: () => setCreateDialogOpen(true),
+    refreshAll,
   }));
 
   const refreshResources = useCallback(() => {
-    listWebResourcesForSolution(orgApiUrl, solutionId)
+    return listWebResourcesForSolution(orgApiUrl, solutionId)
       .then(setResources)
       .catch((err) => setError(err.message));
   }, [orgApiUrl, solutionId]);
@@ -273,6 +277,18 @@ export function WebResourceList({
   function handleCreated() {
     setCreateDialogOpen(false);
     refreshResources();
+  }
+
+  /** Re-fetches the resource list and re-checks every linked file against the latest
+   * remote content, so the page reflects edits made directly in Power Apps too. */
+  async function refreshAll() {
+    onRefreshingChange?.(true);
+    try {
+      await refreshResources();
+      await Promise.all(links.map(checkOneModified));
+    } finally {
+      onRefreshingChange?.(false);
+    }
   }
 
   const availableTypes = useMemo(() => {

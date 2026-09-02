@@ -12,6 +12,7 @@ import {
 import {
   AddRegular,
   AppsListDetailRegular,
+  ArrowSyncRegular,
   CloudArrowUpRegular,
   CloudRegular,
   DocumentBulletListRegular,
@@ -52,6 +53,7 @@ function App({ isDark, onToggleTheme }: Props) {
   const [modifiedCount, setModifiedCount] = useState(0);
   const [selectedCount, setSelectedCount] = useState(0);
   const [publishingAll, setPublishingAll] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [folderBarOpen, setFolderBarOpen] = useState(false);
   const [environmentBarOpen, setEnvironmentBarOpen] = useState(false);
   const [solutionBarOpen, setSolutionBarOpen] = useState(false);
@@ -259,6 +261,14 @@ function App({ isDark, onToggleTheme }: Props) {
                 >
                   Create
                 </Button>
+                <Button
+                  appearance="secondary"
+                  icon={<ArrowSyncRegular />}
+                  onClick={() => webResourceListRef.current?.refreshAll()}
+                  disabled={refreshing || publishingAll}
+                >
+                  {refreshing ? "Refreshing..." : "Refresh"}
+                </Button>
               </div>
             }
           >
@@ -275,6 +285,7 @@ function App({ isDark, onToggleTheme }: Props) {
               onModifiedCountChange={setModifiedCount}
               onSelectedCountChange={setSelectedCount}
               onPublishingAllChange={setPublishingAll}
+              onRefreshingChange={setRefreshing}
             />
           </SectionCard>
         ) : (
