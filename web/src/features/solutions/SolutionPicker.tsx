@@ -24,6 +24,7 @@ export function SolutionPicker({ orgApiUrl, selected, onSelect }: Props) {
 
   return (
     <Dropdown
+      className="w-full"
       placeholder="Choose a solution"
       value={selected?.friendlyname ?? ""}
       onOptionSelect={(_, data) => {

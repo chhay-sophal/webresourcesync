@@ -84,8 +84,8 @@ function App({ isDark, onToggleTheme }: Props) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col" style={{ background: tokens.colorNeutralBackground2 }}>
-      <div className="sticky top-0 z-10">
+    <div className="flex h-screen flex-col" style={{ background: tokens.colorNeutralBackground2 }}>
+      <div>
         <header
           className="flex items-center justify-between px-6 py-2.5"
           style={{
@@ -133,7 +133,7 @@ function App({ isDark, onToggleTheme }: Props) {
               />
             </SettingsBarItem>
 
-            <Divider vertical className="h-7" />
+            <Divider vertical className="h-7 max-w-1" />
 
             <SettingsBarItem
               icon={<CloudRegular />}
@@ -152,7 +152,7 @@ function App({ isDark, onToggleTheme }: Props) {
               />
             </SettingsBarItem>
 
-            <Divider vertical className="h-7" />
+            <Divider vertical className="h-7 max-w-1" />
 
             <SettingsBarItem
               icon={<AppsListDetailRegular />}
@@ -177,7 +177,7 @@ function App({ isDark, onToggleTheme }: Props) {
         )}
       </div>
 
-      <main className="mx-auto flex w-full flex-1 flex-col gap-5 p-6">
+      <main className="mx-auto flex w-full flex-1 flex-col p-2 overflow-hidden">
         {checkingStatus ? (
           <div className="flex justify-center p-12">
             <Spinner label="Checking sign-in status..." />

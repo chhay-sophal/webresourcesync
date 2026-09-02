@@ -11,7 +11,7 @@ interface Props {
 
 export function SectionCard({ icon, title, description, action, children }: Props) {
   return (
-    <Card className="flex flex-1 flex-col px-6 py-5">
+    <Card className="flex min-h-0 flex-1 flex-col !pb-1">
       <CardHeader
         image={
           <div
@@ -33,7 +33,7 @@ export function SectionCard({ icon, title, description, action, children }: Prop
         description={description ? <Text size={200}>{description}</Text> : undefined}
         action={action || undefined}
       />
-      <div className="flex-1">{children}</div>
+      <div className="flex min-h-0 flex-1 flex-col mb-1">{children}</div>
     </Card>
   );
 }

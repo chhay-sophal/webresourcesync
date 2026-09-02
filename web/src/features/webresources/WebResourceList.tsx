@@ -330,15 +330,15 @@ export function WebResourceList({
   if (resources.length === 0) return <Text>No web resources found in this solution.</Text>;
 
   return (
-    <div>
+    <div className="flex min-h-0 flex-1 flex-col">
     {publishAllError && (
       <Text className="mb-2 block" style={{ color: tokens.colorPaletteRedForeground1 }}>
         {publishAllError}
       </Text>
     )}
-    <div className="overflow-x-auto">
-    <Table className="w-full table-fixed min-w-[800px]">
-      <TableHeader>
+    <div className="flex min-h-0 flex-1 flex-col overflow-x-auto">
+    <Table className="flex min-h-0 flex-1 flex-col w-full table-fixed min-w-[800px]">
+      <TableHeader className="sticky top-0 z-10" style={{ background: tokens.colorNeutralBackground1 }}>
         <TableRow>
           <TableHeaderCell className="w-10">
             <Checkbox
@@ -347,7 +347,7 @@ export function WebResourceList({
               aria-label="Select all web resources"
             />
           </TableHeaderCell>
-          <TableHeaderCell className="w-1/5">
+          <TableHeaderCell className="w-1/4">
             <HeaderContent label="Name">
               <ColumnHeaderMenu
                 active={sortDirectionFor("name") !== null || filters.name !== ""}
@@ -367,8 +367,8 @@ export function WebResourceList({
               </ColumnHeaderMenu>
             </HeaderContent>
           </TableHeaderCell>
-          <TableHeaderCell className="w-1/5">
-            <HeaderContent label="Display name">
+          <TableHeaderCell className="w-1/4">
+            <HeaderContent label="Display Name">
               <ColumnHeaderMenu
                 active={sortDirectionFor("displayname") !== null || filters.displayname !== ""}
                 sortDirection={sortDirectionFor("displayname")}
@@ -389,7 +389,7 @@ export function WebResourceList({
               </ColumnHeaderMenu>
             </HeaderContent>
           </TableHeaderCell>
-          <TableHeaderCell className="w-[10%]">
+          <TableHeaderCell className="w-[15%]">
             <HeaderContent label="Type">
               <ColumnHeaderMenu
                 active={sortDirectionFor("type") !== null || filters.types.size > 0}
@@ -413,7 +413,7 @@ export function WebResourceList({
               </ColumnHeaderMenu>
             </HeaderContent>
           </TableHeaderCell>
-          <TableHeaderCell className="w-[8%]">
+          <TableHeaderCell className="w-[10%]">
             <HeaderContent label="Managed">
               <ColumnHeaderMenu
                 active={sortDirectionFor("managed") !== null || filters.managed !== "all"}
@@ -435,10 +435,12 @@ export function WebResourceList({
               </ColumnHeaderMenu>
             </HeaderContent>
           </TableHeaderCell>
-          <TableHeaderCell>Local file</TableHeaderCell>
+          <TableHeaderCell className="w-1/4">
+            <div className="font-bold">Local File</div>
+          </TableHeaderCell>
         </TableRow>
       </TableHeader>
-      <TableBody>
+      <TableBody className="min-h-0 flex-1 overflow-y-auto">
         {displayedResources.map((r) => {
           const link = links.find((l) => l.webresourceId === r.webresourceid);
           const isSelected = selectedIds.has(r.webresourceid);
@@ -519,7 +521,7 @@ export function WebResourceList({
 
 function HeaderContent({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-2">
+    <div className="flex items-center justify-between gap-2 font-bold">
       <span>{label}</span>
       {children}
     </div>
