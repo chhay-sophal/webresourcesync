@@ -8,11 +8,14 @@ your machine, instead of re-uploading content through the maker portal by hand.
 - Sign in and browse your Dataverse environments, solutions, and web resources
 - Link a web resource to a local file; edits you save in VS Code show up live in the app
 - Create, update, publish, and delete web resources without leaving the tool
+- Checks for updates on launch, with a one-click Update button when a new version's out
 
 ## Install
 
 Grab the latest installer from [Releases](https://github.com/chhay-sophal/webresourcesync/releases)
-and run it — no other setup needed. **Windows only for now.**
+and run it — no other setup needed. CI builds installers for Windows, macOS, and Linux on every
+release, but **only Windows has actually been run and verified so far** — treat the macOS/Linux
+builds as untested until someone confirms otherwise.
 
 The installer is currently unsigned, so Windows SmartScreen will likely warn that it's from
 an "unknown publisher" the first time you run it — click **More info → Run anyway** to
@@ -80,10 +83,18 @@ npm run prepare-sidecar --workspace server   # bundles + packages the backend in
 npx tauri build                              # builds the frontend, compiles Tauri, produces the installer
 ```
 
-The installer lands at `src-tauri/target/release/bundle/nsis/*.exe`. `.github/workflows/`
-has two CI workflows that do this same thing automatically: `build-check.yml` on every
-push/PR (uploads the installer as a build artifact), and `release.yml` on a pushed version
-tag (attaches it to a draft GitHub Release).
+Since the updater plugin is enabled (`bundle.createUpdaterArtifacts`), Tauri needs a signing key
+present or this fails at the very last step even though the installer itself built fine - set
+`TAURI_SIGNING_PRIVATE_KEY` (and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` if the key has one) in your
+shell first. Any valid keypair works for a local build (`npx tauri signer generate`) - it only
+needs to match the real key for an update to actually verify at runtime, which doesn't matter
+for a build you're just testing locally.
+
+On Windows this produces both an NSIS installer and an MSI, at
+`src-tauri/target/release/bundle/{nsis,msi}/`. `.github/workflows/` has two CI workflows that do
+this same thing automatically across Windows, macOS, and Linux: `build-check.yml` on every
+push/PR (uploads the installers as build artifacts), and `release.yml` on a pushed version tag
+(attaches them to a draft GitHub Release).
 
 ### Tests
 
