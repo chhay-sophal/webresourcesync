@@ -1,10 +1,10 @@
 [package]
 name = "app"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
-license = ""
-repository = ""
+description = "Edit Power Apps (Dataverse) web resources from local files, with live sync back to Dataverse"
+authors = ["Chhay Sophal"]
+license = "MIT"
+repository = "https://github.com/chhay-sophal/webresourcesync"
 edition = "2021"
 rust-version = "1.77.2"
 
