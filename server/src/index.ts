@@ -12,7 +12,7 @@ import { dataverseRouter } from "./routes/dataverse.js";
 import { filesRouter } from "./routes/files.js";
 import { linksRouter } from "./routes/links.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const moduleDir = typeof __dirname !== "undefined" ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 4000);
 const isProd = process.env.NODE_ENV === "production";
 
@@ -29,7 +29,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/dataverse", dataverseRouter);
 
 if (isProd) {
-  const webDist = path.join(__dirname, "../../web/dist");
+  const webDist = path.join(moduleDir, "../../web/dist");
   app.use(express.static(webDist));
   app.get("*", (_req, res) => res.sendFile(path.join(webDist, "index.html")));
 }

@@ -4,3 +4,5 @@ dist/
 .env.local
 .webresourcesync/
 *.log
+server/dist-bundle/
+src-tauri/binaries/

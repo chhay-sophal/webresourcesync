@@ -12,6 +12,7 @@
     "start": "cross-env NODE_ENV=production node server/dist/index.js"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.11.4",
     "cross-env": "^7.0.3"
   }
 }

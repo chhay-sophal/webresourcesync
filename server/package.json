@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "bundle": "esbuild src/index.ts --bundle --platform=node --format=cjs --outfile=dist-bundle/server.cjs --external:fsevents --external:bufferutil --external:utf-8-validate",
+    "package": "pkg dist-bundle/server.cjs --targets node22-win-x64 --output dist-bundle/server-win.exe"
   },
   "dependencies": {
     "@azure/msal-node": "^5.6.0",
@@ -22,6 +24,8 @@
     "@types/express": "^4.17.21",
     "@types/node": "^22.10.1",
     "@types/ws": "^8.5.13",
+    "@yao-pkg/pkg": "^6.22.0",
+    "esbuild": "^0.28.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }

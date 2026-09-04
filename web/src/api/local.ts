@@ -1,4 +1,5 @@
 import { backendJson } from "./backend";
+import { open } from "@tauri-apps/plugin-dialog";
 
 export interface LocalConfig {
   watchedRoot: string | null;
@@ -33,13 +34,12 @@ export function listLocalFiles(): Promise<{ root: string | null; files: LocalFil
   return backendJson<{ root: string | null; files: LocalFile[] }>("/files");
 }
 
-/** Opens a native folder-picker dialog on the machine running the backend. Returns null
- * if the user cancelled. */
+/** Opens Tauri's native folder-picker dialog. Returns null if the user cancelled. */
 export async function pickFolder(): Promise<string | null> {
-  const { path } = await backendJson<{ path: string | null }>("/files/pick-folder", {
-    method: "POST",
-  });
-  return path;
+  return open({
+    directory: true,
+    title: "Select the folder containing your web resource files",
+  })
 }
 
 export async function getLocalFileContent(path: string): Promise<string> {
