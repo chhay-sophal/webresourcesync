@@ -35,62 +35,23 @@ import { base64ToUtf8, utf8ToBase64 } from "../../lib/base64";
 import { usePersistedState } from "../../hooks/usePersistedState";
 import { ColumnHeaderMenu, type SortDirection } from "./ColumnHeaderMenu";
 import { CreateWebResourceDialog } from "./CreateWebResourceDialog";
+import {
+  deserializeFilters,
+  EMPTY_FILTERS,
+  FILTERS_STORAGE_KEY,
+  matchesText,
+  serializeFilters,
+  type Filters,
+  type ManagedFilter,
+  type PersistedFilterEntry,
+  type SortColumn,
+  type SortState,
+} from "./filterUtils";
 import { WebResourceDetailsDialog } from "./WebResourceDetailsDialog";
 import { WebResourceRow } from "./WebResourceRow";
 import { TYPE_LABELS } from "./webResourceTypes";
 
-type ManagedFilter = "all" | "managed" | "unmanaged";
-type SortColumn = "name" | "displayname" | "type" | "managed";
-type SortState = { column: SortColumn; direction: "asc" | "desc" } | null;
-
-interface Filters {
-  name: string;
-  displayname: string;
-  types: Set<number>;
-  managed: ManagedFilter;
-}
-
-const EMPTY_FILTERS: Filters = { name: "", displayname: "", types: new Set(), managed: "all" };
-
-/** localStorage can't hold a Set directly, so filters get flattened to a plain array for
- * persistence and rebuilt into a Set on the way back out. */
-interface SerializedFilters {
-  name: string;
-  displayname: string;
-  types: number[];
-  managed: ManagedFilter;
-}
-
-interface PersistedFilterEntry {
-  filters: SerializedFilters;
-  sort: SortState;
-}
-
-/** Exported so App.tsx can wipe this on sign-out — filters should only persist while the
- * same user stays signed in, not across accounts on a shared machine. */
-export const FILTERS_STORAGE_KEY = "wrs.webResourceFilters";
-
-function serializeFilters(f: Filters): SerializedFilters {
-  return { ...f, types: [...f.types] };
-}
-
-function deserializeFilters(s: SerializedFilters): Filters {
-  return { ...s, types: new Set(s.types) };
-}
-
-/** Matches `pattern` against `value`. Plain text is a case-insensitive "contains" match;
- * `*` (any run of characters) and `?` (any single character) make it a full wildcard match. */
-function matchesText(value: string, pattern: string): boolean {
-  if (!pattern.trim()) return true;
-  if (!/[*?]/.test(pattern)) {
-    return value.toLowerCase().includes(pattern.toLowerCase());
-  }
-  const escaped = pattern
-    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
-    .replace(/\*/g, ".*")
-    .replace(/\?/g, ".");
-  return new RegExp(`^${escaped}$`, "i").test(value);
-}
+export { FILTERS_STORAGE_KEY };
 
 function sortValue(r: WebResource, column: SortColumn): string {
   switch (column) {

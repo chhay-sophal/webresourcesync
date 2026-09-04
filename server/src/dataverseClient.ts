@@ -25,7 +25,7 @@ interface EnvironmentResponse {
 /** Converts an environment's app URL (https://org.crm5.dynamics.com) to its dedicated
  * Web API endpoint (https://org.api.crm5.dynamics.com) — the same transform Global
  * Discovery used to hand back directly as a separate "ApiUrl" field. */
-function toApiUrl(orgUrl: string): string {
+export function toApiUrl(orgUrl: string): string {
   const url = new URL(orgUrl);
   const labels = url.hostname.split(".");
   if (labels.length > 1 && labels[1] !== "api") {

@@ -10,7 +10,8 @@
     "start": "node dist/index.js",
     "bundle": "esbuild src/index.ts --bundle --platform=node --format=cjs --outfile=dist-bundle/server.cjs --external:fsevents --external:bufferutil --external:utf-8-validate",
     "package": "pkg dist-bundle/server.cjs --targets node22-win-x64 --output dist-bundle/server-win.exe",
-    "prepare-sidecar": "npm run bundle && npm run package && node ../scripts/copy-sidecar.mjs"
+    "prepare-sidecar": "npm run bundle && npm run package && node ../scripts/copy-sidecar.mjs",
+    "test": "vitest run"
   },
   "dependencies": {
     "@azure/msal-node": "^5.6.0",
@@ -28,6 +29,7 @@
     "@yao-pkg/pkg": "^6.22.0",
     "esbuild": "^0.28.2",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^5.0.0"
   }
 }

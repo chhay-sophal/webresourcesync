@@ -27,10 +27,10 @@ async function walk(dir: string, root: string): Promise<
 }
 
 /** Resolves a client-supplied relative path against the watched root, rejecting escapes. */
-function resolveWithinRoot(root: string, relativePath: string): string {
+export function resolveWithinRoot(root: string, relativePath: string): string {
   const resolved = path.resolve(root, relativePath);
-  const normalizedRoot = path.resolve(root) + path.sep;
-  if (!resolved.startsWith(normalizedRoot)) {
+  const normalizedRoot = path.resolve(root);
+  if (resolved !== normalizedRoot && !resolved.startsWith(normalizedRoot + path.sep)) {
     throw new Error("Path escapes watched root");
   }
   return resolved;
