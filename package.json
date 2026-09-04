@@ -10,7 +10,8 @@
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "build": "npm run build -w web && npm run build -w server",
-    "start": "cross-env NODE_ENV=production node server/dist/index.js"
+    "start": "cross-env NODE_ENV=production node server/dist/index.js",
+    "tauri": "tauri"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.11.4",
