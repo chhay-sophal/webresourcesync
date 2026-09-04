@@ -32,11 +32,10 @@ export function WebResourceDetailsDialog({ orgApiUrl, webresourceId, linkedPath,
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!webresourceId) {
-      setDetails(null);
-      setError(null);
-      return;
-    }
+    // Closing (webresourceId -> null) intentionally leaves the last-viewed details in state
+    // rather than clearing them - clearing here would flash the loading spinner during the
+    // dialog's own close transition, since it'd briefly re-render with no details to show.
+    if (!webresourceId) return;
     setDetails(null);
     setError(null);
     getWebResourceDetails(orgApiUrl, webresourceId)
@@ -50,26 +49,28 @@ export function WebResourceDetailsDialog({ orgApiUrl, webresourceId, linkedPath,
         <DialogBody>
           <DialogTitle>Web resource details</DialogTitle>
           <DialogContent>
-            {error && <Text style={{ color: tokens.colorPaletteRedForeground1 }}>{error}</Text>}
-            {!error && !details && (
-              <div className="flex justify-center py-6">
-                <Spinner label="Loading details..." />
-              </div>
-            )}
-            {details && (
-              <div className="flex flex-col gap-3 py-2">
-                <DetailRow label="Name" value={details.name} mono />
-                <DetailRow label="Display name" value={details.displayname} />
-                <DetailRow label="Type" value={TYPE_LABELS[details.webresourcetype] ?? String(details.webresourcetype)} />
-                <DetailRow label="Managed" value={details.ismanaged ? "Yes" : "No"} />
-                <DetailRow label="Description" value={details.description || "—"} />
-                <DetailRow label="Language code" value={details.languagecode?.toString() ?? "—"} />
-                <DetailRow label="Created on" value={formatDate(details.createdon)} />
-                <DetailRow label="Modified on" value={formatDate(details.modifiedon)} />
-                <DetailRow label="Web resource ID" value={details.webresourceid} mono />
-                {linkedPath && <DetailRow label="Linked local file" value={linkedPath} mono />}
-              </div>
-            )}
+            <div className="flex min-h-[400px] flex-col">
+              {error && <Text style={{ color: tokens.colorPaletteRedForeground1 }}>{error}</Text>}
+              {!error && !details && (
+                <div className="flex flex-1 items-center justify-center">
+                  <Spinner label="Loading details..." />
+                </div>
+              )}
+              {details && (
+                <div className="flex flex-col gap-3 py-2">
+                  <DetailRow label="Name" value={details.name} mono />
+                  <DetailRow label="Display name" value={details.displayname} />
+                  <DetailRow label="Type" value={TYPE_LABELS[details.webresourcetype] ?? String(details.webresourcetype)} />
+                  <DetailRow label="Managed" value={details.ismanaged ? "Yes" : "No"} />
+                  <DetailRow label="Description" value={details.description || "—"} />
+                  <DetailRow label="Language code" value={details.languagecode?.toString() ?? "—"} />
+                  <DetailRow label="Created on" value={formatDate(details.createdon)} />
+                  <DetailRow label="Modified on" value={formatDate(details.modifiedon)} />
+                  <DetailRow label="Web resource ID" value={details.webresourceid} mono />
+                  {linkedPath && <DetailRow label="Linked local file" value={linkedPath} mono />}
+                </div>
+              )}
+            </div>
           </DialogContent>
           <DialogActions>
             <Button appearance="primary" onClick={onClose}>
