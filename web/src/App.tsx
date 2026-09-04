@@ -30,7 +30,11 @@ import { EnvironmentPicker } from "./features/environments/EnvironmentPicker";
 import { useLocalFiles } from "./features/localfiles/useLocalFiles";
 import { WatchedFolderSettings } from "./features/localfiles/WatchedFolderSettings";
 import { SolutionPicker } from "./features/solutions/SolutionPicker";
-import { WebResourceList, type WebResourceListHandle } from "./features/webresources/WebResourceList";
+import {
+  FILTERS_STORAGE_KEY,
+  WebResourceList,
+  type WebResourceListHandle,
+} from "./features/webresources/WebResourceList";
 import { usePersistedState } from "./hooks/usePersistedState";
 
 interface Props {
@@ -84,6 +88,9 @@ function App({ isDark, onToggleTheme }: Props) {
     setUsername(null);
     setEnvironment(null);
     setSolution(null);
+    // Web resource filters persist across refreshes while signed in, but shouldn't outlive
+    // the session (e.g. on a shared machine).
+    localStorage.removeItem(FILTERS_STORAGE_KEY);
   }
 
   return (

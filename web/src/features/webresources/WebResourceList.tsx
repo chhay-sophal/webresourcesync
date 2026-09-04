@@ -16,7 +16,16 @@ import {
   tokens,
 } from "@fluentui/react-components";
 import { InfoRegular } from "@fluentui/react-icons";
-import { useCallback, useEffect, useImperativeHandle, useMemo, useState, type ReactNode, type Ref } from "react";
+import {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type Ref,
+} from "react";
 import {
   getWebResourceContent,
   listWebResourcesForSolution,
@@ -26,6 +35,7 @@ import {
 } from "../../api/dataverse";
 import { getLocalFileContent, listLinks, type LocalFile, type ResourceLink } from "../../api/local";
 import { base64ToUtf8, utf8ToBase64 } from "../../lib/base64";
+import { usePersistedState } from "../../hooks/usePersistedState";
 import { ColumnHeaderMenu, type SortDirection } from "./ColumnHeaderMenu";
 import { CreateWebResourceDialog } from "./CreateWebResourceDialog";
 import { LocalFileLink } from "./LocalFileLink";
@@ -34,6 +44,7 @@ import { TYPE_LABELS } from "./webResourceTypes";
 
 type ManagedFilter = "all" | "managed" | "unmanaged";
 type SortColumn = "name" | "displayname" | "type" | "managed";
+type SortState = { column: SortColumn; direction: "asc" | "desc" } | null;
 
 interface Filters {
   name: string;
@@ -43,6 +54,32 @@ interface Filters {
 }
 
 const EMPTY_FILTERS: Filters = { name: "", displayname: "", types: new Set(), managed: "all" };
+
+/** localStorage can't hold a Set directly, so filters get flattened to a plain array for
+ * persistence and rebuilt into a Set on the way back out. */
+interface SerializedFilters {
+  name: string;
+  displayname: string;
+  types: number[];
+  managed: ManagedFilter;
+}
+
+interface PersistedFilterEntry {
+  filters: SerializedFilters;
+  sort: SortState;
+}
+
+/** Exported so App.tsx can wipe this on sign-out — filters should only persist while the
+ * same user stays signed in, not across accounts on a shared machine. */
+export const FILTERS_STORAGE_KEY = "wrs.webResourceFilters";
+
+function serializeFilters(f: Filters): SerializedFilters {
+  return { ...f, types: [...f.types] };
+}
+
+function deserializeFilters(s: SerializedFilters): Filters {
+  return { ...s, types: new Set(s.types) };
+}
 
 /** Matches `pattern` against `value`. Plain text is a case-insensitive "contains" match;
  * `*` (any run of characters) and `?` (any single character) make it a full wildcard match. */
@@ -113,13 +150,28 @@ export function WebResourceList({
   const [resources, setResources] = useState<WebResource[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [sort, setSort] = useState<{ column: SortColumn; direction: "asc" | "desc" } | null>(null);
+  const [draftFilters, setDraftFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [sort, setSort] = useState<SortState>(null);
   const [links, setLinks] = useState<ResourceLink[]>([]);
   const [modifiedStatus, setModifiedStatus] = useState<Map<string, boolean>>(new Map());
   const [publishAllError, setPublishAllError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [detailsId, setDetailsId] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+
+  // Persisted per-solution so switching solutions doesn't show another solution's filters,
+  // but returning to one you've already filtered restores it. Read via a ref inside the
+  // solution-switch effect below so that effect only fires on an actual solution switch, not
+  // on every filter edit (which would otherwise re-trigger it through this dependency).
+  const [persistedFilters, setPersistedFilters] = usePersistedState<Record<string, PersistedFilterEntry>>(
+    FILTERS_STORAGE_KEY,
+    {}
+  );
+  const persistedFiltersRef = useRef(persistedFilters);
+  useEffect(() => {
+    persistedFiltersRef.current = persistedFilters;
+  }, [persistedFilters]);
+  const scopeKey = `${orgApiUrl}::${solutionId}`;
 
   const refreshLinks = useCallback(() => {
     listLinks().then(setLinks);
@@ -250,6 +302,7 @@ export function WebResourceList({
   useImperativeHandle(ref, () => ({
     clearAllFiltersAndSort: () => {
       setFilters(EMPTY_FILTERS);
+      setDraftFilters(EMPTY_FILTERS);
       setSort(null);
     },
     publishAll,
@@ -266,13 +319,29 @@ export function WebResourceList({
 
   useEffect(() => {
     setResources(null);
-    setFilters(EMPTY_FILTERS);
-    setSort(null);
+    const saved = persistedFiltersRef.current[scopeKey];
+    const restoredFilters = saved ? deserializeFilters(saved.filters) : EMPTY_FILTERS;
+    setFilters(restoredFilters);
+    setDraftFilters(restoredFilters);
+    setSort(saved ? saved.sort : null);
     setModifiedStatus(new Map());
     setPublishAllError(null);
     setSelectedIds(new Set());
     refreshResources();
+    // scopeKey is derived from orgApiUrl/solutionId, which are already deps; persistedFiltersRef
+    // is deliberately read via ref, not as a dep, so this only re-runs on an actual solution
+    // switch rather than on every filter edit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orgApiUrl, solutionId, refreshResources]);
+
+  // Persist the applied (not draft) filters/sort for this solution whenever they change.
+  useEffect(() => {
+    setPersistedFilters((prev) => ({
+      ...prev,
+      [scopeKey]: { filters: serializeFilters(filters), sort },
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scopeKey, filters, sort]);
 
   function handleCreated() {
     setCreateDialogOpen(false);
@@ -320,8 +389,8 @@ export function WebResourceList({
     return sort?.column === column ? sort.direction : null;
   }
 
-  function toggleType(code: number) {
-    setFilters((f) => {
+  function toggleDraftType(code: number) {
+    setDraftFilters((f) => {
       const types = new Set(f.types);
       if (types.has(code)) types.delete(code);
       else types.add(code);
@@ -413,15 +482,18 @@ export function WebResourceList({
                 active={sortDirectionFor("name") !== null || filters.name !== ""}
                 sortDirection={sortDirectionFor("name")}
                 onSort={(direction) => setSort(direction ? { column: "name", direction } : null)}
+                onOpenChange={(open) => open && setDraftFilters(filters)}
+                onApply={() => setFilters(draftFilters)}
                 onClear={() => {
                   setFilters((f) => ({ ...f, name: "" }));
+                  setDraftFilters((f) => ({ ...f, name: "" }));
                   setSort((s) => (s?.column === "name" ? null : s));
                 }}
               >
                 <Input
                   size="small"
-                  value={filters.name}
-                  onChange={(_, data) => setFilters((f) => ({ ...f, name: data.value }))}
+                  value={draftFilters.name}
+                  onChange={(_, data) => setDraftFilters((f) => ({ ...f, name: data.value }))}
                   placeholder="e.g. *_form or contact"
                 />
               </ColumnHeaderMenu>
@@ -435,15 +507,18 @@ export function WebResourceList({
                 onSort={(direction) =>
                   setSort(direction ? { column: "displayname", direction } : null)
                 }
+                onOpenChange={(open) => open && setDraftFilters(filters)}
+                onApply={() => setFilters(draftFilters)}
                 onClear={() => {
                   setFilters((f) => ({ ...f, displayname: "" }));
+                  setDraftFilters((f) => ({ ...f, displayname: "" }));
                   setSort((s) => (s?.column === "displayname" ? null : s));
                 }}
               >
                 <Input
                   size="small"
-                  value={filters.displayname}
-                  onChange={(_, data) => setFilters((f) => ({ ...f, displayname: data.value }))}
+                  value={draftFilters.displayname}
+                  onChange={(_, data) => setDraftFilters((f) => ({ ...f, displayname: data.value }))}
                   placeholder="e.g. Contact*"
                 />
               </ColumnHeaderMenu>
@@ -455,8 +530,11 @@ export function WebResourceList({
                 active={sortDirectionFor("type") !== null || filters.types.size > 0}
                 sortDirection={sortDirectionFor("type")}
                 onSort={(direction) => setSort(direction ? { column: "type", direction } : null)}
+                onOpenChange={(open) => open && setDraftFilters(filters)}
+                onApply={() => setFilters(draftFilters)}
                 onClear={() => {
                   setFilters((f) => ({ ...f, types: new Set() }));
+                  setDraftFilters((f) => ({ ...f, types: new Set() }));
                   setSort((s) => (s?.column === "type" ? null : s));
                 }}
               >
@@ -465,8 +543,8 @@ export function WebResourceList({
                     <Checkbox
                       key={code}
                       label={label}
-                      checked={filters.types.has(code)}
-                      onChange={() => toggleType(code)}
+                      checked={draftFilters.types.has(code)}
+                      onChange={() => toggleDraftType(code)}
                     />
                   ))}
                 </div>
@@ -479,14 +557,19 @@ export function WebResourceList({
                 active={sortDirectionFor("managed") !== null || filters.managed !== "all"}
                 sortDirection={sortDirectionFor("managed")}
                 onSort={(direction) => setSort(direction ? { column: "managed", direction } : null)}
+                onOpenChange={(open) => open && setDraftFilters(filters)}
+                onApply={() => setFilters(draftFilters)}
                 onClear={() => {
                   setFilters((f) => ({ ...f, managed: "all" }));
+                  setDraftFilters((f) => ({ ...f, managed: "all" }));
                   setSort((s) => (s?.column === "managed" ? null : s));
                 }}
               >
                 <RadioGroup
-                  value={filters.managed}
-                  onChange={(_, data) => setFilters((f) => ({ ...f, managed: data.value as ManagedFilter }))}
+                  value={draftFilters.managed}
+                  onChange={(_, data) =>
+                    setDraftFilters((f) => ({ ...f, managed: data.value as ManagedFilter }))
+                  }
                 >
                   <Radio value="all" label="All" />
                   <Radio value="managed" label="Managed" />
