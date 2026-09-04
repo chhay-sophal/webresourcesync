@@ -44,19 +44,19 @@ export function useLocalFiles() {
     return () => ws.close();
   }, [refresh]);
 
-  async function setRootFolder(newRoot: string) {
+  const setRootFolder = useCallback(async (newRoot: string) => {
     const config = await setWatchedRoot(newRoot);
     setRoot(config.watchedRoot);
     await refresh();
-  }
+  }, [refresh]);
 
-  function clearModified(path: string) {
+  const clearModified = useCallback((path: string) => {
     setModifiedPaths((m) => {
       const copy = new Set(m);
       copy.delete(path);
       return copy;
     });
-  }
+  }, []);
 
   return { root, files, modifiedPaths, setRootFolder, clearModified, refresh };
 }

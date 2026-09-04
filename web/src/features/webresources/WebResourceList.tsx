@@ -1,5 +1,4 @@
 import {
-  Button,
   Checkbox,
   Input,
   Radio,
@@ -8,14 +7,12 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableCellLayout,
   TableHeader,
   TableHeaderCell,
   TableRow,
   Text,
   tokens,
 } from "@fluentui/react-components";
-import { InfoRegular } from "@fluentui/react-icons";
 import {
   useCallback,
   useEffect,
@@ -38,8 +35,8 @@ import { base64ToUtf8, utf8ToBase64 } from "../../lib/base64";
 import { usePersistedState } from "../../hooks/usePersistedState";
 import { ColumnHeaderMenu, type SortDirection } from "./ColumnHeaderMenu";
 import { CreateWebResourceDialog } from "./CreateWebResourceDialog";
-import { LocalFileLink } from "./LocalFileLink";
 import { WebResourceDetailsDialog } from "./WebResourceDetailsDialog";
+import { WebResourceRow } from "./WebResourceRow";
 import { TYPE_LABELS } from "./webResourceTypes";
 
 type ManagedFilter = "all" | "managed" | "unmanaged";
@@ -227,10 +224,13 @@ export function WebResourceList({
     onSelectedCountChange?.(selectedIds.size);
   }, [selectedIds, onSelectedCountChange]);
 
-  function handleRowPublished(webresourceId: string, localPath: string) {
-    setModifiedStatus((prev) => new Map(prev).set(webresourceId, false));
-    onFilePublished(localPath);
-  }
+  const handleRowPublished = useCallback(
+    (webresourceId: string, localPath: string) => {
+      setModifiedStatus((prev) => new Map(prev).set(webresourceId, false));
+      onFilePublished(localPath);
+    },
+    [onFilePublished]
+  );
 
   /** Updates local-linked content for the given resources (in parallel) and publishes
    * everything that either updated successfully or has no local link to update from. */
@@ -398,14 +398,14 @@ export function WebResourceList({
     });
   }
 
-  function toggleSelected(id: string) {
+  const toggleSelected = useCallback((id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  }
+  }, []);
 
   const allDisplayedSelected =
     displayedResources.length > 0 && displayedResources.every((r) => selectedIds.has(r.webresourceid));
@@ -586,60 +586,22 @@ export function WebResourceList({
       <TableBody>
         {displayedResources.map((r) => {
           const link = links.find((l) => l.webresourceId === r.webresourceid);
-          const isSelected = selectedIds.has(r.webresourceid);
           return (
-            <TableRow key={r.webresourceid} appearance={isSelected ? "brand" : "none"}>
-              <TableCell>
-                <Checkbox
-                  checked={isSelected}
-                  onChange={() => toggleSelected(r.webresourceid)}
-                  aria-label={`Select ${r.name}`}
-                />
-              </TableCell>
-              <TableCell>
-                <div className="flex min-w-0 items-center justify-between gap-1">
-                  <TableCellLayout truncate title={r.name} className="min-w-0 flex-1">
-                    {r.name}
-                  </TableCellLayout>
-                  <Button
-                    shape="circular"
-                    appearance="subtle"
-                    size="small"
-                    icon={<InfoRegular />}
-                    onClick={() => setDetailsId(r.webresourceid)}
-                    aria-label={`View details for ${r.name}`}
-                    className="shrink-0"
-                  />
-                </div>
-              </TableCell>
-              <TableCell>
-                <TableCellLayout truncate title={r.displayname}>
-                  {r.displayname}
-                </TableCellLayout>
-              </TableCell>
-              <TableCell>
-                <TableCellLayout truncate>
-                  {TYPE_LABELS[r.webresourcetype] ?? r.webresourcetype}
-                </TableCellLayout>
-              </TableCell>
-              <TableCell>
-                <TableCellLayout truncate>{r.ismanaged ? "Yes" : "No"}</TableCellLayout>
-              </TableCell>
-              <TableCell>
-                <LocalFileLink
-                  orgApiUrl={orgApiUrl}
-                  environmentId={environmentId}
-                  solutionUniqueName={solutionUniqueName}
-                  webresourceId={r.webresourceid}
-                  webresourceName={r.name}
-                  localFiles={localFiles}
-                  link={link}
-                  isModified={!!link && (modifiedStatus.get(r.webresourceid) ?? false)}
-                  onLinksChanged={refreshLinks}
-                  onPublished={handleRowPublished}
-                />
-              </TableCell>
-            </TableRow>
+            <WebResourceRow
+              key={r.webresourceid}
+              resource={r}
+              isSelected={selectedIds.has(r.webresourceid)}
+              onToggleSelected={toggleSelected}
+              onShowDetails={setDetailsId}
+              orgApiUrl={orgApiUrl}
+              environmentId={environmentId}
+              solutionUniqueName={solutionUniqueName}
+              localFiles={localFiles}
+              link={link}
+              isModified={!!link && (modifiedStatus.get(r.webresourceid) ?? false)}
+              onLinksChanged={refreshLinks}
+              onPublished={handleRowPublished}
+            />
           );
         })}
         {displayedResources.length === 0 && (
