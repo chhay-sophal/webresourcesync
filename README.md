@@ -1,11 +1,22 @@
 # Web Resource Sync
 
-A local tool for editing Power Apps (Dataverse) web resources (HTML/JS/CSS) from files on
+![Build check](https://github.com/chhay-sophal/webresourcesync/actions/workflows/build-check.yml/badge.svg)
+
+A desktop tool for editing Power Apps (Dataverse) web resources (HTML/JS/CSS) from files on
 your machine, instead of re-uploading content through the maker portal by hand.
 
 - Sign in and browse your Dataverse environments, solutions, and web resources
 - Link a web resource to a local file; edits you save in VS Code show up live in the app
 - Create, update, publish, and delete web resources without leaving the tool
+
+## Install
+
+Grab the latest installer from [Releases](https://github.com/chhay-sophal/webresourcesync/releases)
+and run it — no other setup needed. **Windows only for now.**
+
+The installer is currently unsigned, so Windows SmartScreen will likely warn that it's from
+an "unknown publisher" the first time you run it — click **More info → Run anyway** to
+proceed.
 
 ## Sign-in — no app registration needed
 
@@ -16,7 +27,7 @@ This works by reusing Microsoft's own published client ID for XRM tooling (the s
 [XrmToolBox](https://www.xrmtoolbox.com/) and the Dataverse `ServiceClient`/`pac cli` use —
 see [Microsoft's docs](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/authenticate-oauth)),
 so you don't need to register an Entra app or ask a tenant admin to grant consent for a
-custom one. The backend runs the sign-in itself (opens your system browser, catches the
+custom one. The app runs the sign-in itself (opens your system browser, catches the
 redirect on a local port, exchanges the code for tokens) and proxies every Dataverse call
 server-to-server, so there's no browser CORS setup on the environment either.
 
@@ -27,22 +38,59 @@ Two caveats worth knowing:
   third-party apps), even this will hit the same admin-consent wall a custom app would —
   that's a deliberate security boundary only an admin can lift.
 
-## Running
+## How linking works
+
+The app watches a folder on your machine that you choose in it. Each web resource can be
+linked to one file in that folder. When you save the file, the app shows it as "modified"
+immediately; click **Publish** to push the new content to Dataverse and publish it.
+
+Link data and your cached sign-in tokens are stored locally on your machine (in the app's own
+data folder) — nothing about your local files is sent anywhere except the content you
+explicitly publish.
+
+## Development
+
+This is an npm workspaces monorepo (`server/` — the Express + Dataverse/auth backend,
+`web/` — the React frontend) wrapped in a Tauri desktop shell (`src-tauri/`).
+
+### Run it as a plain web app
 
 ```
 npm install
 npm run dev
 ```
 
-This starts the backend (file watcher + local API) on port 4000 and the frontend dev
-server on port 5173. Open http://localhost:5173.
+Starts the backend on port 4000 and the Vite dev server on port 5173. Open
+http://localhost:5173. Useful for quick frontend iteration without touching Rust/Tauri.
 
-## How linking works
+### Run it as the desktop app
 
-The backend watches a folder on your machine that you choose in the app. Each web resource
-can be linked to one file in that folder. When you save the file, the app shows it as
-"modified" immediately; click **Publish** to push the new content to Dataverse and publish it.
+```
+npm install -D @tauri-apps/cli   # first time only
+npx tauri dev
+```
 
-Link data and your cached sign-in tokens are stored locally in `.webresourcesync/` in this
-repo (git-ignored) — nothing about your local files is sent anywhere except the content you
-explicitly publish.
+Opens the real native window, with the backend running as a Tauri sidecar process — this is
+what actually ships, so it's the more representative way to test a change.
+
+### Build the installer
+
+```
+npm run prepare-sidecar --workspace server   # bundles + packages the backend into a standalone .exe
+npx tauri build                              # builds the frontend, compiles Tauri, produces the installer
+```
+
+The installer lands at `src-tauri/target/release/bundle/nsis/*.exe`. `.github/workflows/`
+has two CI workflows that do this same thing automatically: `build-check.yml` on every
+push/PR (uploads the installer as a build artifact), and `release.yml` on a pushed version
+tag (attaches it to a draft GitHub Release).
+
+### Tests
+
+```
+npm test --workspace web
+```
+
+## License
+
+[MIT](LICENSE)
