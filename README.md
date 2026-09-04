@@ -89,7 +89,23 @@ tag (attaches it to a draft GitHub Release).
 
 ```
 npm test --workspace web
+npm test --workspace server
 ```
+
+### Releases and auto-update
+
+The app checks for updates on launch (`@tauri-apps/plugin-updater`) and shows an Update
+button next to the version number in the header when one's available. This requires
+`release.yml` to sign each release with a private key matching the public key in
+`src-tauri/tauri.conf.json`'s `plugins.updater.pubkey` — set as the `TAURI_SIGNING_PRIVATE_KEY`
+and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` repo secrets. If you rotate keys (`npx tauri signer
+generate`), update both the secrets and the `pubkey` in `tauri.conf.json` together, or existing
+installs won't recognize new releases as valid updates.
+
+`build-check.yml` signs with its own throwaway keypair (hardcoded in the workflow, not a
+secret) just to satisfy Tauri's build-time requirement that *something* signs the artifact -
+it's never used to actually verify a real update, which is also why build-check keeps working
+for pull requests from forks that can't access repo secrets.
 
 ## License
 

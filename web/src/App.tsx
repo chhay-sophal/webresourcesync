@@ -25,6 +25,7 @@ import { useEffect, useRef, useState } from "react";
 import { getAuthStatus, login, logout } from "./api/auth";
 import type { DataverseEnvironment, Solution } from "./api/dataverse";
 import { SectionCard } from "./components/SectionCard";
+import { UpdateStatus } from "./components/UpdateStatus";
 import { SettingsBarItem } from "./components/SettingsBarItem";
 import { EnvironmentPicker } from "./features/environments/EnvironmentPicker";
 import { useLocalFiles } from "./features/localfiles/useLocalFiles";
@@ -103,9 +104,12 @@ function App({ isDark, onToggleTheme }: Props) {
             borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
           }}
         >
-          <Text weight="semibold" size={500}>
-            Web Resource Sync
-          </Text>
+          <div className="flex items-center gap-3">
+            <Text weight="semibold" size={500}>
+              Web Resource Sync
+            </Text>
+            <UpdateStatus />
+          </div>
           <div className="flex items-center gap-2">
             {username && <Text size={200}>{username}</Text>}
             <Button

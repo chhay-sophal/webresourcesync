@@ -50,6 +50,16 @@ jobs:
         run: npm run prepare-sidecar --workspace server
 
       - name: Build Tauri app
+        # Tauri's updater requires *some* private key to sign against once
+        # bundle.createUpdaterArtifacts is on, or the build fails at the final packaging step
+        # even though the installer itself built fine. This is a throwaway keypair used only to
+        # satisfy that requirement here - it never signs anything real (the actual release
+        # signing key lives in secrets.TAURI_SIGNING_PRIVATE_KEY, used only by release.yml) and
+        # exposing it changes nothing, which is also why it's safe for pull_request builds from
+        # forks (which can't access repo secrets) to keep working.
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: "dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5TENQeWZOMTVxQkVvVTVDNC9Ya2ZNV3JiWm5pN083MVRQTmFwVW52NEtWc0FBQkFBQUFBQUFBQUFBQUlBQUFBQUtpTEdxcmxUL3JLRHVPWVVvbFY3UkZ6R282eEdvZHkwdDI5Y0RwNjZqdEl1ejdOMFd6d0hreDdNSy9zU3MxYzZBSC9qN0pFdEJ5ZlVpMzUwQ2FJSnhvQWJSUnl2cW5wVjlDM1hPZWx6VkZrcnM1ZXpOR2RXTWQrbElYdU8wdDkvUXB2ZFArT28vYTA9Cg=="
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: "OearMfIdABTQMYnvkWRPztNjwf25J731"
         run: npx tauri build
 
       - name: Upload installer artifact
