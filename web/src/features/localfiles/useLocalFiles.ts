@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { BACKEND_ORIGIN } from "../../api/backend";
 import { getLocalConfig, listLocalFiles, setWatchedRoot, type LocalFile } from "../../api/local";
 
 interface FileEvent {
@@ -21,7 +22,10 @@ export function useLocalFiles() {
     getLocalConfig().then((c) => setRoot(c.watchedRoot));
     refresh();
 
-    const wsUrl = `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/ws`;
+    // Same reasoning as BACKEND_ORIGIN in api/backend.ts: this must be the backend's own
+    // absolute address, not one relative to window.location (Tauri's internal origin in the
+    // packaged app has no /ws route of its own).
+    const wsUrl = `${BACKEND_ORIGIN.replace(/^http/, "ws")}/ws`;
     const ws = new WebSocket(wsUrl);
     ws.onmessage = (ev) => {
       const event = JSON.parse(ev.data) as FileEvent;
