@@ -393,9 +393,12 @@ export function WebResourceList({
         {publishAllError}
       </Text>
     )}
-    <div className="flex min-h-0 flex-1 flex-col overflow-x-auto">
-    <Table className="flex min-h-0 flex-1 flex-col w-full table-fixed min-w-[800px]">
-      <TableHeader className="sticky top-0 z-10" style={{ background: tokens.colorNeutralBackground1 }}>
+    <div className="min-h-0 flex-1 overflow-auto">
+    <Table className="w-full table-fixed min-w-[800px]">
+      <TableHeader
+        className="sticky top-0 z-10"
+        style={{ background: tokens.colorNeutralBackground1 }}
+      >
         <TableRow>
           <TableHeaderCell className="w-10">
             <Checkbox
@@ -497,7 +500,7 @@ export function WebResourceList({
           </TableHeaderCell>
         </TableRow>
       </TableHeader>
-      <TableBody className="min-h-0 flex-1 overflow-y-auto">
+      <TableBody>
         {displayedResources.map((r) => {
           const link = links.find((l) => l.webresourceId === r.webresourceid);
           const isSelected = selectedIds.has(r.webresourceid);
